@@ -242,9 +242,15 @@ export function newToken() {
 
 /* ---------- links ---------- */
 
-/* Appends campaign tags so the click is attributable. A URL that already carries
-   utm_ params is left exactly as supplied. */
-export function withUtm(raw) {
+/* Appends campaign tags so the click is attributable in the SPONSOR's own
+   analytics (our click counter is separate and internal). A URL that already
+   carries utm_ params is left exactly as supplied.
+
+   `campaign` distinguishes the surfaces: the sitewide cards stay
+   'sponsor_card' — the default, so every existing caller is unchanged — while
+   The Build Games passes its own, so a sponsor can tell which placement is
+   actually sending them traffic. */
+export function withUtm(raw, campaign = 'sponsor_card') {
   let u;
   try {
     u = new URL(raw);
@@ -256,14 +262,36 @@ export function withUtm(raw) {
   }
   u.searchParams.set('utm_source', 'canivibecodeit');
   u.searchParams.set('utm_medium', 'referral');
-  u.searchParams.set('utm_campaign', 'sponsor_card');
+  u.searchParams.set('utm_campaign', campaign);
   return u.href;
 }
 
+/* An X / Twitter profile link's favicon is just the X logo — the sponsor's
+   actual face is their avatar. unavatar.io resolves handle → avatar image.
+   Returns null for anything that isn't a profile path (search, intent, home,
+   …) so callers fall back to the normal favicon. Kept here (not in the
+   screen) because both the stored pipeline and the render fallback use it. */
+const X_RESERVED = new Set([
+  'i', 'home', 'search', 'explore', 'notifications', 'messages', 'settings',
+  'intent', 'hashtag', 'share', 'login', 'signup', 'compose', 'tos',
+  'privacy', 'about', 'download',
+]);
+export function xAvatarUrl(u) {
+  const host = u.hostname.replace(/^www\./, '').toLowerCase();
+  if (host !== 'x.com' && host !== 'twitter.com') return null;
+  const seg = u.pathname.split('/').filter(Boolean);
+  if (seg.length === 0) return null;
+  const handle = seg[0].replace(/^@/, '');
+  if (!/^[A-Za-z0-9_]{1,15}$/.test(handle) || X_RESERVED.has(handle.toLowerCase())) return null;
+  return `https://unavatar.io/x/${encodeURIComponent(handle)}`;
+}
+
 // Same trick the app icons use: no upload flow, no storage, no broken images.
+// X/Twitter profile links get the profile picture instead of the X logo.
 export function faviconUrl(raw) {
   try {
-    return `https://www.google.com/s2/favicons?domain=${new URL(raw).hostname}&sz=64`;
+    const u = new URL(raw);
+    return xAvatarUrl(u) ?? `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`;
   } catch {
     return '';
   }

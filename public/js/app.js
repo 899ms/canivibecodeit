@@ -67,6 +67,9 @@
       const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
       document.documentElement.dataset.theme = next;
       localStorage.setItem('theme', next);
+      // keep browser chrome in step; values mirror --bg (and THEME_SCRIPT)
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = next === 'light' ? '#f7f8f9' : '#0b0d0b';
       track('theme_toggle', { theme: next });
     });
 
@@ -557,11 +560,52 @@
         localStorage.setItem(key, '1');
       } catch {}
     };
-    const showReveal = () => {
-      if (!reveal) return;
-      if (remembered('digest_dismissed') || remembered('digest_subscribed')) return;
+    /* One shared dismissal for every digest ask (reveal + bar): closing any of
+       them silences all of them, for 90 days rather than forever. Legacy
+       per-surface flags convert to one clock starting at first sight.
+       digest_subscribed stays permanent — subscribers never get asked again. */
+    const DISMISS_KEY = 'digest_ask_dismissed';
+    const DISMISS_TTL = 90 * 24 * 60 * 60 * 1000;
+    const dismissAsks = () => {
+      try {
+        localStorage.setItem(DISMISS_KEY, String(Date.now()));
+      } catch {}
+    };
+    const asksDismissed = () => {
+      try {
+        if (localStorage.getItem('digest_dismissed') || localStorage.getItem('digest_bar_dismissed')) {
+          localStorage.removeItem('digest_dismissed');
+          localStorage.removeItem('digest_bar_dismissed');
+          dismissAsks();
+          return true;
+        }
+        const at = Number(localStorage.getItem(DISMISS_KEY));
+        if (!at) return false;
+        if (Date.now() - at < DISMISS_TTL) return true;
+        localStorage.removeItem(DISMISS_KEY);
+        return false;
+      } catch {
+        return false;
+      }
+    };
+    /* The same card serves several moments (post-copy, post-vote): the trigger
+       passes its own source + headline. First trigger wins — a visible card is
+       never re-labelled under the reader. */
+    const showReveal = (opts) => {
+      if (!reveal || !reveal.hidden) return;
+      if (asksDismissed() || remembered('digest_subscribed')) return;
+      if (opts?.source) {
+        const src = $('input[name=source]', reveal);
+        if (src) src.value = opts.source;
+      }
+      if (opts?.head) {
+        const head = $('[data-dr-head]', reveal);
+        if (head) head.textContent = opts.head;
+      }
       reveal.hidden = false;
       requestAnimationFrame(() => reveal.classList.add('in'));
+      // One ask at a time: the reveal on screen sends the bar away.
+      killBar();
     };
 
     $$('.copy-group').forEach((group) => {
@@ -634,6 +678,7 @@
             voteLabel(btn, true);
             toast('☠ counted. RIP that subscription.');
             track('vote', { app: slug });
+            showReveal({ source: 'post_vote', head: 'counted. verdicts flip when models improve.' });
           }
         } catch {
           toast('something broke · try again');
@@ -1089,8 +1134,9 @@
           btn.textContent = "you're in ✓";
           btn.disabled = true;
           form.querySelector('input[type=email]').disabled = true;
-          toast('in. verdicts arrive weekly.');
-          track('waitlist_signup', { placement: form.querySelector('[name=source]')?.value });
+          toast('in. see you thursday.');
+          // waitlist_signup is captured server-side in /api/waitlist — no
+          // client event, or blocked-analytics visitors vanish from the count.
           remember('digest_subscribed');
           if (reveal && !reveal.contains(form)) reveal.hidden = true;
           // A signup from the bar itself keeps its "you're in ✓" on screen.
@@ -1101,18 +1147,43 @@
       });
     });
 
-    $('[data-digest-dismiss]')?.addEventListener('click', () => {
-      if (reveal) reveal.hidden = true;
-      remember('digest_dismissed');
+    /* Signed-in one-click subscribe (the reveal's dr-oneclick state): the
+       account email is on file, /api/account/digest flips it on server-side. */
+    $('[data-digest-oneclick]')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      const placement = reveal?.querySelector('input[name=source]')?.value || 'app_copy';
+      const res = await jsonPost('/api/account/digest', 'POST', { on: true, placement }).catch(() => null);
+      if (res?.ok) {
+        btn.textContent = "you're in ✓";
+        toast('digest on · see you thursday');
+        remember('digest_subscribed');
+        setTimeout(() => {
+          if (reveal) reveal.hidden = true;
+        }, 1500);
+        killBar();
+      } else {
+        btn.disabled = false;
+        toast('that did not stick · try again');
+      }
     });
+
+    $$('[data-digest-dismiss]').forEach((el) =>
+      el.addEventListener('click', () => {
+        if (reveal) reveal.hidden = true;
+        dismissAsks();
+      })
+    );
 
     /* The bar arrives once someone is past the first screen and leaves again at
        the top. Dismissed or subscribed → the listener is never attached. */
-    if (bar && !remembered('digest_bar_dismissed') && !remembered('digest_subscribed')) {
+    if (bar && !asksDismissed() && !remembered('digest_subscribed')) {
       let queued = false;
       const syncBar = () => {
         queued = false;
         if (barOff) return;
+        // One ask at a time: while the post-copy reveal is up, the bar waits.
+        if (reveal && !reveal.hidden) return;
         const y = window.scrollY;
         if (y > window.innerHeight * 0.8) bar.classList.add('show');
         else if (y < 200) bar.classList.remove('show');
@@ -1130,7 +1201,7 @@
 
     $('[data-digest-bar-dismiss]')?.addEventListener('click', () => {
       killBar();
-      remember('digest_bar_dismissed');
+      dismissAsks();
     });
 
     /* ---------- reveal on scroll ---------- */

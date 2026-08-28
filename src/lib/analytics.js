@@ -6,6 +6,20 @@ const HOST = process.env.POSTHOG_UI_HOST || 'https://eu.posthog.com';
 const PROJECT = process.env.POSTHOG_PROJECT_ID;
 const KEY = process.env.POSTHOG_PERSONAL_KEY;
 
+/* The scripted-browser pair filtered at the /ph proxy also left ~31k
+   historical events that can't be deleted (personless mode has no person
+   rows to delete through), so every read excludes them here. The coalesce
+   matters: NULL NOT IN (...) is NULL, which would silently drop
+   server-captured events that carry no user agent. */
+const BOT_UAS = [
+  'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+  'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:153.0) Gecko/20100101 Firefox/153.0',
+]
+  .map((ua) => `'${ua}'`)
+  .join(', ');
+const SITE = `properties.$host = 'canivibecodeit.com'
+  AND coalesce(properties.$raw_user_agent, '') NOT IN (${BOT_UAS})`;
+
 const QUERY = `
   SELECT
     countIf(event = '$pageview' AND timestamp >= toStartOfDay(now())) AS views_today,
@@ -15,13 +29,42 @@ const QUERY = `
     (SELECT max(pv) FROM (
       SELECT toDate(timestamp) AS d, countIf(event = '$pageview') AS pv
       FROM events
-      WHERE properties.$host = 'canivibecodeit.com'
+      WHERE ${SITE}
       GROUP BY d
     )) AS best_day
   FROM events
-  WHERE properties.$host = 'canivibecodeit.com'
+  WHERE ${SITE}
     AND timestamp > now() - INTERVAL 7 DAY
 `;
+
+/* Server-side event capture through the public ingest key. Fire-and-forget:
+   analytics may never fail a user-facing request. ~58% of this audience blocks
+   client analytics, so conversion events (signups) are counted here, where they
+   actually happen — the client-side capture for those events was removed, this
+   is the only writer. $process_person_profile:false keeps every event at the
+   anonymous billing rate (nothing may ever call identify — see quota notes). */
+const INGEST = process.env.POSTHOG_INGEST_HOST || 'https://eu.i.posthog.com';
+const PUBLIC_KEY = process.env.POSTHOG_KEY;
+
+export function captureServer(event, properties = {}, distinctId = 'server') {
+  if (!PUBLIC_KEY) return;
+  fetch(`${INGEST}/i/v0/e/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_key: PUBLIC_KEY,
+      event,
+      distinct_id: distinctId,
+      properties: {
+        ...properties,
+        $process_person_profile: false,
+        $host: 'canivibecodeit.com',
+        $lib: 'server',
+      },
+    }),
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {});
+}
 
 /* PostHog's query API allows 2400 requests/hour but only 3 concurrent queries
    per project; queued queries can be cancelled. Callers must keep any
@@ -48,8 +91,6 @@ async function hogql(query, { fresh = false } = {}) {
   if (!res.ok) throw new Error(`posthog ${res.status}`);
   return (await res.json()).results;
 }
-
-const SITE = `properties.$host = 'canivibecodeit.com'`;
 
 // $pathname arrives from PostHog events, and anyone can POST a fake event with
 // the public ingest key, so it is attacker-controlled. A genuine path starts

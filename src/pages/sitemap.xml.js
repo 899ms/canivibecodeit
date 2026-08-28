@@ -1,9 +1,11 @@
 import { allApps, alternativesSitemapApps, productsSitemap, categoriesInUse, moatsInUse } from '../lib/apps.js';
+import { challengeLive } from '../lib/flags.js';
 
 export async function GET() {
   const base = 'https://canivibecodeit.com';
   const altPages = alternativesSitemapApps();
   const urls = [
+    ...(challengeLive() ? [`${base}/challenge`] : []),
     `${base}/`,
     ...allApps().map((a) => `${base}/${a.slug}`),
     ...altPages.map((a) => `${base}/${a.slug}/alternatives`),
@@ -15,6 +17,7 @@ export async function GET() {
     `${base}/moats`,
     `${base}/stats`,
     `${base}/submit`,
+    `${base}/newsletter`,
     `${base}/best-vibe-coding-tools`,
     `${base}/vibecode-this-site`,
   ];

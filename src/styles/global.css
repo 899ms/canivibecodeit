@@ -44,32 +44,33 @@
 }
 
 [data-theme='light'] {
-  /* light — paper terminal, inverted for contrast (Rob 2026-08-06): warm paper
-     GROUND, pure-white cards that pop off it, darker borders and secondary
-     text. The old all-white version read washed out. */
-  --bg: #f4f1e8;
+  /* light — cool grey GROUND, pure-white cards that pop off it (Rob
+     2026-08-23). Replaced the warm paper theme, which read beige and clashed
+     with the white section bands. Everything neutral is COOL grey; the only
+     warm notes left are the verdict amber and the catch label. */
+  --bg: #f7f8f9;
   --surface: #ffffff;
-  --surface-2: #ece8db;
-  --border: #c9c2ac;
-  --fg: #14170f;
-  --muted: #575d51;
+  --surface-2: #eef0f2;
+  --border: #d8dbe1;
+  --fg: #15181d;
+  --muted: #5b6370;
   --primary: #0b7c39;
   --on-primary: #ffffff;
-  --primary-dim: #9fdcb6;
+  --primary-dim: #a3d9b9;
   --kinda-bg: #f5b300;
   --kinda-fg: #241800;
   --no-bg: #e03131;
   --no-fg: #ffffff;
-  --catch: #8f6400;
+  --catch: #8a6200;
   --ticker: #0e9c47;
-  --ticker-dim: #628a70;
+  --ticker-dim: #64827a;
   --ticker-label: #2f8a52;
-  --ticker-bg: #e7f3ea;
-  --ticker-cell: #f4fbf6;
-  --ticker-cell-border: #bcdcc7;
-  --lose-bg: #fbe3e3;
-  --lose-border: #e5a5a5;
-  --shadow: 0 8px 32px rgba(40, 36, 24, 0.14);
+  --ticker-bg: #e8f3ec;
+  --ticker-cell: #f6fbf8;
+  --ticker-cell-border: #bfdccb;
+  --lose-bg: #fbe4e4;
+  --lose-border: #eab0b0;
+  --shadow: 0 8px 32px rgba(16, 20, 28, 0.1);
   --card: #ffffff;
 
   color-scheme: light;
@@ -85,6 +86,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* the canvas itself carries the theme ground: overscroll and mid-swap
+     frames paint --bg, never the browser default */
+  background: var(--bg);
 }
 
 body {
@@ -211,22 +215,6 @@ h3 {
 
 .site-nav a:hover {
   color: var(--fg);
-}
-
-.site-nav .gh {
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 7px 12px;
-  transition: border-color 0.15s ease, transform 0.1s ease;
-}
-
-.site-nav .gh:hover {
-  border-color: var(--muted);
-}
-
-.site-nav .gh:active {
-  transform: scale(0.96);
 }
 
 .theme-toggle {
@@ -783,9 +771,47 @@ h3 {
 }
 
 .search-miss.show {
-  max-height: 60px;
+  /* room for the signup rows on any wrap; the transition still reads as one
+     slide because overflow stays hidden */
+  max-height: 220px;
   opacity: 1;
   transform: none;
+}
+
+.search-miss .miss-hook {
+  flex-basis: 100%;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.search-miss .miss-form {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.search-miss .miss-form input[type='email'] {
+  width: min(260px, 60vw);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 13px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.search-miss .miss-form input[type='email']:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.search-miss .miss-form .btn.primary {
+  font-size: 13px;
+  padding: 9px 14px;
+  white-space: nowrap;
 }
 
 .search-miss a {
@@ -2351,6 +2377,29 @@ a.tile {
   white-space: nowrap;
 }
 
+/* signed-in: the account email is on file, so the ask is one click, no typing.
+   CSS-gated on body[data-user] rather than a server branch — the component
+   stays static and cacheable. */
+.digest-reveal .dr-oneclick {
+  display: none;
+  gap: 10px;
+  align-items: stretch;
+}
+
+body[data-user] .digest-reveal form[data-digest] {
+  display: none;
+}
+
+body[data-user] .digest-reveal .dr-oneclick {
+  display: flex;
+}
+
+.dr-oneclick .btn.primary {
+  font-size: 13px;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
 .dr-close {
   flex-shrink: 0;
   width: 34px;
@@ -2391,7 +2440,7 @@ a.tile {
 }
 
 [data-theme='light'] .digest-bar {
-  box-shadow: 0 -10px 30px rgba(40, 36, 24, 0.12);
+  box-shadow: 0 -10px 30px rgba(16, 20, 28, 0.12);
 }
 
 .digest-bar.show {
@@ -3164,25 +3213,19 @@ a.tile {
 @media (max-width: 980px) {
   /* Account affordances are exempt: sign-in/avatar must survive every width
      (the chip swap below 760px is handled in the accounts section). */
-  .site-nav a:not(.gh):not([href='/sponsor']):not(.signin):not(.signin-chip):not(.avatar-chip) {
+  .site-nav a:not([href='/sponsor']):not(.signin):not(.signin-chip):not(.avatar-chip) {
     display: none;
   }
 }
 
-/* The full nav row needs ~1020px of header on one line, and between 980px and
-   ~1500px (tapes band + the rail-squeezed band, where the header sits at its
-   984px floor) it doesn't get it. "submit an app" steps out first: it's the
-   longest label with the smallest audience, the github button beside it points
-   at the same repo, and the footer nav row carries the full link everywhere. */
-@media (min-width: 980px) and (max-width: 1499px) {
-  .site-nav .nav-submit {
-    display: none;
-  }
+/* Nav thinning (2026-08-26): the header carries five text links and no
+   github button, so the row fits the 984px rail-squeezed floor with room to
+   spare — the old 980-1499px step-out rules for "submit an app" and "stats"
+   are gone with the links that made them necessary. */
 
-  /* With the builds section live the row gains a sixth link; "stats" steps
-     out with "submit an app" in the squeezed band (footer nav carries both).
-     :has() keeps this inert while the builds link doesn't render. */
-  .site-nav:has(.nav-builds) a[href='/stats'] {
+/* Rob's amendment to the thinning: the radio survives, desktop only. */
+@media (max-width: 760px) {
+  .site-nav .radio {
     display: none;
   }
 }
@@ -3274,7 +3317,8 @@ a.tile {
   .search input,
   .digest-card input[type='email'],
   .digest-reveal input[type='email'],
-  .digest-bar input[type='email'] {
+  .digest-bar input[type='email'],
+  .search-miss .miss-form input[type='email'] {
     font-size: 16px;
   }
 
@@ -4203,22 +4247,58 @@ button.sp-banner {
   }
 }
 
-/* ---------- light mode: white canvas ---------- */
+/* ---------- light mode: grey canvas, white cards ---------- */
 
-/* With bg and surface both white, hovers need the well tone instead. */
+/* Death-list rows are white strips on the grey ground (Rob 2026-08-23);
+   hover falls back to the well tone since white IS the resting state. */
+[data-theme='light'] .row {
+  background: var(--surface);
+}
+
 [data-theme='light'] a.row:hover {
   background: var(--surface-2);
 }
 
+/* The stats + globe bands melt into the grey ground instead of reading as
+   white slabs; the globe keeps a white disc behind it, and the embedded
+   card variant (/stats, /sponsor) stays a white card like every other. */
+[data-theme='light'] .stats-strip,
+[data-theme='light'] .globe-strip {
+  background: var(--bg);
+}
+
+[data-theme='light'] .globe-strip.embedded {
+  background: var(--surface);
+}
+
+[data-theme='light'] #globe-canvas {
+  background: var(--surface);
+  border-radius: 50%;
+}
+
+[data-theme='light'] .g-chip {
+  background: var(--surface);
+}
+
 /* Controls get a solid white face and a hairline shadow so they read as
-   raised buttons rather than outlines drawn on the page. */
-[data-theme='light'] .site-nav .gh,
+   raised buttons rather than outlines drawn on the page. The .site-nav
+   prefixes on the chips are for specificity: their base rules sit later in
+   the file. The radio's on-air green tint still wins (three classes). */
 [data-theme='light'] .theme-toggle,
+[data-theme='light'] .radio-btn,
+[data-theme='light'] .site-nav .signin-chip,
+[data-theme='light'] .site-nav .avatar-chip,
 [data-theme='light'] .chip:not(.active),
 [data-theme='light'] .vchip:not(.active),
 [data-theme='light'] .btn.ghost {
   background: #ffffff;
   box-shadow: 0 1px 2px rgba(23, 26, 23, 0.06);
+}
+
+/* The brand mark's question-box is stroke-only; on the light ground it gets
+   a white fill so the logo matches the solid-faced controls beside it. */
+[data-theme='light'] .brand .mark rect[fill='none'] {
+  fill: #ffffff;
 }
 
 /* Elevated overlays sit on a white page — never darker than the canvas. */
@@ -4266,6 +4346,12 @@ button.sp-banner {
 
   .site-header {
     top: 46px;
+  }
+
+  /* Pages without the sponsor tape (hideSponsors): the header parks at the
+     very top — a 46px offset with no tape leaves it floating over content. */
+  body.no-tape .site-header {
+    top: 0;
   }
 
   .digest-bar {
