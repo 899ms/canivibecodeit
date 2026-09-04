@@ -1,5 +1,5 @@
 ---
-import { faviconUrl, getBoard, usd, withUtm } from '../lib/sponsors.js';
+import { composeRails, faviconUrl, getBoard, usd, withUtm } from '../lib/sponsors.js';
 
 // Sponsor tape: a slow infinite marquee of icon + name, one at the top of the
 // page and one fixed at the bottom. Top tape carries the left-rail slots,
@@ -7,9 +7,30 @@ import { faviconUrl, getBoard, usd, withUtm } from '../lib/sponsors.js';
 // halves and slides -50%, so the loop never shows a seam.
 const { side = 'left' } = Astro.props;
 const board = await getBoard();
-const slots = side === 'left' ? board.left : board.right;
-// Enough copies per half that the tape outruns any viewport width.
-const half = Array.from({ length: 3 }, () => slots).flat();
+/* Same composition as the rails (composeRails, operator decision Sep 2 v2):
+   money per side, house cards floated for balance, one open unit on the
+   whole board — the tapes mirror exactly what the rails show. */
+const composed = composeRails(board);
+const own = side === 'left' ? composed.left : composed.right;
+/* A marquee stutters when it repeats one card back-to-back. A thin rail
+   (fewer than TAPE_MIN composed items) fills its tape from the WHOLE board's
+   occupied cards (live / reserved / house) in slot order, open units
+   excluded; the loop then cycles the combined set and never shows the same
+   card twice in a row. A board with a single occupied card borrows the one
+   open unit the rails show, so there is always something to alternate with. */
+const TAPE_MIN = 3;
+let items = own;
+if (own.length < TAPE_MIN) {
+  items = board.slots.filter((s) => s.state !== 'open' || s.house);
+  if (items.length < 2) {
+    const openUnit = [...composed.left, ...composed.right].find((s) => s.state === 'open' && !s.house);
+    if (openUnit) items = [...items, openUnit];
+  }
+}
+// Enough copies per half that the tape outruns any viewport width; a set of
+// distinct items repeated whole never puts the same card back-to-back.
+const reps = items.length >= 2 ? Math.max(1, Math.ceil(6 / items.length)) : 1;
+const half = Array.from({ length: reps }, () => items).flat();
 const pos = side === 'left' ? 'top' : 'bottom';
 ---
 
@@ -35,6 +56,17 @@ const pos = side === 'left' ? 'top' : 'bottom';
                   loading="lazy"
                 />
                 <span>{s.sponsor.name}</span>
+              </a>
+            ) : s.state === 'open' && s.house ? (
+              <a
+                class="sp-tape-item live"
+                href={withUtm(s.house.url, 'house')}
+                target="_blank"
+                rel="sponsored noopener"
+                data-slot={s.id}
+              >
+                <img src={s.house.logoUrl} alt="" width="20" height="20" loading="lazy" />
+                <span>{s.house.name}</span>
               </a>
             ) : s.state === 'open' ? (
               <a class="sp-tape-item open" href="/sponsor" data-slot={s.id}>

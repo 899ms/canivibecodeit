@@ -1,7 +1,7 @@
 ---
 import SponsorCard from './SponsorCard.astro';
 import { recordImpressions } from '../lib/impressions.js';
-import { getBoard, nextRunMonthName } from '../lib/sponsors.js';
+import { composeRails, getBoard, nextRunMonthName } from '../lib/sponsors.js';
 
 const nextMonthLabel = nextRunMonthName();
 
@@ -20,10 +20,14 @@ if (!isPrivatePage) {
     Astro.request.headers.get('user-agent')
   );
 }
-// Every slot renders a card in every state — a rail with holes in it reads as
-// broken, and each state has something honest to say.
-const left = board.left;
-const right = board.right;
+/* Rail composition v2 (operator decision, Sep 2): money cards pinned per
+   side, house cards float to the shorter rail, and exactly ONE open unit on
+   the whole board appended last to the shorter rail. The rules live in
+   composeRails (sponsors.js) so they stay testable and shared with the
+   tapes. Full availability lives on /sponsor, never as empty units here. */
+const composed = composeRails(board);
+const left = composed.left;
+const right = composed.right;
 const total = board.slots.length;
 // Only an all-running board gets the sold-out card; anything held shows a
 // reserved card instead, so the rails already carry something clickable.
@@ -31,6 +35,11 @@ const total = board.slots.length;
 const showSoldOut = board.allLive;
 ---
 
+{/* Bottom meta card policy: renders only when the board is fully live — the
+    buy-path when no open-slot cards exist; do not make permanent (operator
+    decision 2026-09-02). While any slot is open, the open-slot cards ARE
+    the buy buttons and a bottom CTA is redundant. The 'more' card variant
+    in SponsorCard.astro stays implemented for when the board sells out. */}
 <aside class="sp-rail sp-left" aria-label="Sponsors, left">
   {left.map((slot, i) => <SponsorCard {slot} index={i} />)}
   {showSoldOut && <SponsorCard soldOut septLeft={total - board.prebookedCount} nextMonth={nextMonthLabel} total={total} index={left.length} />}

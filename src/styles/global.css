@@ -217,6 +217,16 @@ h3 {
   color: var(--fg);
 }
 
+/* The Build Games: the one accent-coloured link in the nav (games launch). */
+.site-nav a.nav-games {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.site-nav a.nav-games:hover {
+  color: color-mix(in srgb, var(--primary) 72%, var(--fg));
+}
+
 .theme-toggle {
   width: 34px;
   height: 34px;
@@ -592,7 +602,8 @@ h3 {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 26px;
+  --hero-gap: 26px;
+  gap: var(--hero-gap);
   padding: 84px 20px 56px;
 }
 
@@ -909,6 +920,23 @@ h3 {
 
 .hatch-strip:hover .hs-cta {
   text-decoration: underline;
+}
+
+/* The Build Games strip: the accent version of the hatch strip. */
+.hatch-strip.games-strip {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: color-mix(in srgb, var(--primary) 6%, var(--bg));
+}
+
+.hatch-strip.games-strip:hover {
+  border-color: var(--primary);
+}
+
+/* Two strips stacked (games, then the model showcase): exactly 10px apart.
+   The hero is a flex column with its own gap, so the second strip pulls
+   back by that gap and adds the 10px, at every width. */
+.hatch-strip + .hatch-strip {
+  margin-top: calc(10px - var(--hero-gap, 26px));
 }
 
 @media (max-width: 760px) {
@@ -3213,7 +3241,7 @@ body[data-user] .digest-reveal .dr-oneclick {
 @media (max-width: 980px) {
   /* Account affordances are exempt: sign-in/avatar must survive every width
      (the chip swap below 760px is handled in the accounts section). */
-  .site-nav a:not([href='/sponsor']):not(.signin):not(.signin-chip):not(.avatar-chip) {
+  .site-nav a:not([href='/sponsor']):not(.nav-games):not(.signin):not(.signin-chip):not(.avatar-chip) {
     display: none;
   }
 }
@@ -3653,11 +3681,16 @@ button.sp-banner {
 
   /* The open card is a button inside a form; the form is the rail's flex
      child, so it must pass the granted height and width through, and be
-     allowed to shrink, or its content height would force the rail open. */
+     allowed to shrink, or its content height would force the rail open.
+     max-height matches the card cap: without it a rail of open slots split
+     the full viewport height between the forms and spread down the column
+     with huge gaps, while a filled rail tucked from the top — both rails
+     must stack identically regardless of the open/filled mix. */
   .sp-rail .sp-checkout-form {
     flex: 1 1 0;
     min-height: 0;
     display: flex;
+    max-height: 176px;
   }
 
   .sp-rail .sp-checkout-form .sp-card {
@@ -4138,6 +4171,96 @@ button.sp-banner {
 .sp-form .fine {
   font: 11.5px/1.6 var(--font-mono);
   color: var(--muted);
+}
+
+/* ---------- sponsor icon upload block (both details pages) ---------- */
+
+.icon-up {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.icon-up-state {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.icon-up-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.icon-up-preview {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.icon-up-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.icon-up-preview img[hidden] {
+  display: none;
+}
+
+.icon-up-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.icon-up-pick {
+  position: relative;
+  cursor: pointer;
+}
+
+.icon-up-pick:focus-within {
+  border-color: var(--primary);
+}
+
+.icon-up-pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.icon-up-revert.is-off {
+  display: none;
+}
+
+.icon-up-hint {
+  font: 11.5px/1.6 var(--font-mono);
+  color: var(--muted);
+}
+
+.icon-up-msg {
+  font-size: 13px;
+  min-height: 18px;
+  color: var(--primary);
+}
+
+.icon-up-msg.bad {
+  color: var(--no-bg);
+}
+
+.icon-up.busy {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 /* ---------- sponsor admin (phone-first: Rob approves from a train) ---------- */
@@ -5224,4 +5347,102 @@ a.bd-row:hover {
 
 .head-save.saved .on {
   display: inline;
+}
+
+/* ---------- How to AI rec layer ---------- */
+
+/* Ruben-sourced visitors (referrer/utm, flagged by the inline REC_HIDE_SCRIPT
+   before first paint) never see the placements meant for everyone else. */
+html.ruben-src [data-hide-for-ruben] {
+  display: none !important;
+}
+
+.rec-eyebrow {
+  display: block;
+  font: 11px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+/* Co-reg card: injected after a successful newsletter signup. Compact,
+   plainly a recommendation, one primary tap and a quiet no. */
+.rec-coreg {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  width: min(560px, 100%);
+  margin: 16px auto 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  text-align: left;
+}
+
+.rec-coreg-img {
+  width: 148px;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.rec-coreg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.rec-coreg-title {
+  font-size: 15px;
+  color: var(--fg);
+}
+
+.rec-coreg-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.rec-coreg-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+
+.rec-coreg-go {
+  padding: 9px 16px;
+  font-size: 13.5px;
+}
+
+.rec-coreg-no {
+  font: 12px var(--font-mono);
+  color: var(--muted);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.rec-coreg-no:hover {
+  color: var(--fg);
+}
+
+@media (max-width: 560px) {
+  .rec-coreg {
+    grid-template-columns: 1fr;
+  }
+
+  .rec-coreg-img {
+    width: 100%;
+  }
+
+  .rec-coreg-text {
+    font-size: 15px;
+  }
 }

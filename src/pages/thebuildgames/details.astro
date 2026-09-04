@@ -16,6 +16,8 @@ import {
 import { buildGamesLive } from '../../lib/flags.js';
 import { NAME_MAX, TAGLINE_MAX, monogram, usd } from '../../lib/buildgames.js';
 import { faviconUrl } from '../../lib/sponsors.js';
+import { hostedIconUrl } from '../../lib/sponsor-icon.js';
+import IconUpload from '../../components/IconUpload.astro';
 import { getSession } from '../../lib/stripe.js';
 import { clearPayment } from '../../lib/buildgames-payments.js';
 import { sendBgReceipt } from '../../lib/buildgames-mail.js';
@@ -79,6 +81,10 @@ if (payment && sponsor) {
 }
 
 const clearedTotal = sponsor ? await bgSponsorClearedTotal(sponsor.id) : 0;
+// Uploaded = an icon we host under a VERSIONED key (the clear-time favicon
+// re-host lives at buildgames/<id>.webp, unversioned, and is the default).
+const iconUploaded =
+  !!sponsor && hostedIconUrl(sponsor.icon_url, 'buildgames') && /-\d{10,}\.webp$/.test(sponsor.icon_url);
 const hostName = (() => {
   try {
     return new URL(sponsor?.link ?? '').hostname.replace(/^www\./, '');
@@ -107,7 +113,7 @@ const description = 'Finish setting up your Build Games placement.';
       <>
         <h1>payment processing</h1>
         <p class="bgd-sub">
-          Your payment is being confirmed. This usually takes a few seconds ·
+          Your payment is being confirmed. This usually takes a few seconds ·{' '}
           <a href={`/thebuildgames/details?token=${token}${sessionId ? `&session_id=${sessionId}` : ''}`}>refresh</a>.
         </p>
       </>
@@ -117,8 +123,8 @@ const description = 'Finish setting up your Build Games placement.';
       <>
         <h1>placement under review</h1>
         <p class="bgd-sub">
-          Your payment cleared and your money is in the prize pool, but the placement is
-          being reviewed before it lists. We'll be in touch if anything's needed ·
+          Your payment cleared and your money is in the sponsorship pool, but the placement is
+          being reviewed before it lists. We'll be in touch if anything's needed ·{' '}
           <a href="mailto:digest@canivibecodeit.com">digest@canivibecodeit.com</a>.
         </p>
       </>
@@ -129,7 +135,7 @@ const description = 'Finish setting up your Build Games placement.';
         <h1>top-up received</h1>
         <p class="bgd-sub">
           This payment added {usd(payment.amount_cents)} to an existing placement — its
-          name and tagline are managed by the placement's first payment.
+          name and tagline are managed by the placement's first payment.{' '}
           <a href="/thebuildgames">see the board →</a>
         </p>
       </>
@@ -155,6 +161,17 @@ const description = 'Finish setting up your Build Games placement.';
             <span class="bgd-tagline" data-preview-tagline>{sponsor.tagline ?? 'your tagline appears here'}</span>
           </span>
           <span class="bgd-amount">{usd(clearedTotal)}</span>
+        </div>
+
+        <div class="bgd-icon">
+          <IconUpload
+            endpoint="/api/thebuildgames/icon"
+            token={token}
+            current={sponsor.icon_url ?? ''}
+            fallback={faviconUrl(sponsor.link)}
+            uploaded={iconUploaded}
+            targets=".bgd-logo img"
+          />
         </div>
 
         <form class="bgd-form" method="post" action="/api/thebuildgames/details" data-details-form>
@@ -192,6 +209,8 @@ const description = 'Finish setting up your Build Games placement.';
     )}
   </main>
 </Base>
+
+<script is:inline src={`/js/icon-upload.js?v=${__BUILD_ID__}`} defer></script>
 
 <script>
   // Live preview + save. External module (Astro-bundled), no inline script.
@@ -330,6 +349,11 @@ const description = 'Finish setting up your Build Games placement.';
     font-size: 22px;
     color: var(--primary);
     font-variant-numeric: tabular-nums;
+  }
+
+  .bgd-icon {
+    margin-top: 22px;
+    text-align: left;
   }
 
   .bgd-form {

@@ -49,6 +49,49 @@ export const DEFAULT_TINT = '#33e667';
 
 const BOARD_TTL_MS = 60 * 1000;
 
+/* House cards: our own placements filling listed slots that have no live
+   purchase — the rails render them as normal-looking cards instead of open
+   units. A real PAID sponsor always outranks a house card in the same slot
+   (the derivation puts live first), and the slot stays fully buyable on
+   /sponsor: house occupancy is a rails-only rendering, never inventory.
+   Clicks go out through withUtm campaign 'house' so analytics can tell
+   them from paid placements. Logos are self-hosted under public/icons. */
+export const HOUSE_CARDS = [
+  {
+    slot: 'L3',
+    name: 'SuperX',
+    tagline: 'Grow and monetize your X audience',
+    url: 'https://superx.so',
+    logoUrl: '/icons/superx.webp',
+    tint: '#f77d43',
+  },
+];
+
+/* Rail composition (operator decision, Sep 2, v2 — replaces one-open-per-side):
+   - money cards (live / reserved) stay pinned to their own side, packed from
+     the top in slot order — an open unit never sits between occupied cards;
+   - house cards are ours to place, so they FLOAT to whichever rail is
+     currently shorter (tie → left) to balance the board;
+   - exactly ONE open unit renders on the ENTIRE board — the first open slot
+     in SLOT_IDS order — appended LAST to the shorter rail regardless of
+     which side its slot id belongs to (its checkout still buys that real
+     slot). Every other open slot doesn't render at all.
+   Full availability lives on /sponsor, which uses the raw board. Pure
+   function of the board, so the balance rules are directly testable. */
+export function composeRails(board) {
+  const rails = {
+    left: board.left.filter((s) => s.state !== 'open'),
+    right: board.right.filter((s) => s.state !== 'open'),
+  };
+  const shorter = () => (rails.right.length < rails.left.length ? 'right' : 'left');
+  for (const slot of board.slots.filter((s) => s.state === 'open' && s.house)) {
+    rails[shorter()].push(slot);
+  }
+  const firstOpen = board.slots.find((s) => s.state === 'open' && !s.house) ?? null;
+  if (firstOpen) rails[shorter()].push(firstOpen);
+  return rails;
+}
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /* ---------- money + dates ---------- */
@@ -104,6 +147,17 @@ async function deriveBoard(now) {
   const [slots, purchases] = await Promise.all([sponsorSlots(), activePurchases()]);
   const byId = new Map(slots.map((s) => [s.id, s]));
 
+  /* Operator holds: comma-separated slot ids in RESERVED_SLOTS render the
+     reserved treatment while a deal is mid-negotiation — no fake purchase
+     rows, no schema change, flip = env edit + restart. A LIVE sponsor
+     always outranks a hold (real money beats a handshake). */
+  const heldByOperator = new Set(
+    (process.env.RESERVED_SLOTS || '')
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean)
+  );
+
   const board = SLOT_IDS.map((id) => {
     const slot = byId.get(id);
     const mine = purchases.filter((p) => p.slot_id === id);
@@ -128,8 +182,12 @@ async function deriveBoard(now) {
       nextState: slot?.next_state || 'pending',
       nextTaken,
       nextStartsAt,
-      // reserved = paid for, but not running yet. Holds show as open.
-      state: live ? 'live' : blocked ? 'reserved' : 'open',
+      // reserved = paid for, but not running yet (or an operator hold via
+      // RESERVED_SLOTS). Stripe checkout holds show as open.
+      state: live ? 'live' : blocked || heldByOperator.has(id) ? 'reserved' : 'open',
+      // House card for an otherwise-open slot: rails render it instead of an
+      // open unit; /sponsor still sells the slot (state stays 'open').
+      house: !live && !blocked && !heldByOperator.has(id) ? HOUSE_CARDS.find((h) => h.slot === id) ?? null : null,
       endsAt: live?.ends_at ?? null,
       sponsor: live
         ? {

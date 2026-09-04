@@ -300,6 +300,72 @@ const SCHEMA_SQLITE = `
     reason TEXT,
     created_at INTEGER NOT NULL
   );
+  /* Build Games ENTRIES (the builders, not the sponsors). Not publicly
+     listed yet — judging renders them later. edit_token authorises edits
+     token-only (same mechanic as the payment details token), UNIQUE so the
+     lookup is indexed and two entries can never share a token. */
+  CREATE TABLE IF NOT EXISTS buildgames_entries (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    handle TEXT,
+    demo_url TEXT NOT NULL,
+    repo_url TEXT NOT NULL,
+    blurb TEXT,
+    contact_email TEXT NOT NULL,
+    edit_token TEXT NOT NULL UNIQUE,
+    newsletter_optin INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'submitted',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS buildgames_entries_email ON buildgames_entries (contact_email);
+  /* One counter per recommendation card (the post-entry cross-promo):
+     the outbound click is server-counted through /api/thebuildgames/rec. */
+  CREATE TABLE IF NOT EXISTS buildgames_rec_clicks (
+    rec TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0
+  );
+  /* How to AI rec layer: one counting redirect, clicks per (surface, day)
+     so placements can be reported weekly. No email, no IP, nothing personal. */
+  CREATE TABLE IF NOT EXISTS rec_clicks (
+    src TEXT NOT NULL,
+    day TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (src, day)
+  );
+  /* Impressions per (surface, day): the CTR denominator for rec_clicks. */
+  CREATE TABLE IF NOT EXISTS rec_impressions (
+    src TEXT NOT NULL,
+    day TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (src, day)
+  );
+  /* Model showcase demos (/built-with/<model>): curated posts pulled from
+     X / GitHub / YouTube / the web, media self-hosted on R2, text short and
+     editable. status = live | hidden. Ordered by featured_order. */
+  CREATE TABLE IF NOT EXISTS model_demos (
+    id TEXT PRIMARY KEY,
+    model_slug TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'x',
+    source_url TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    author_handle TEXT,
+    author_name TEXT,
+    author_avatar_url TEXT,
+    text TEXT,
+    media_kind TEXT NOT NULL DEFAULT 'none',
+    media_url TEXT,
+    poster_url TEXT,
+    width INTEGER,
+    height INTEGER,
+    featured_order INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'live',
+    fetched_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS model_demos_source ON model_demos (model_slug, source, source_id);
+  CREATE INDEX IF NOT EXISTS model_demos_model ON model_demos (model_slug, status, featured_order);
 `;
 
 const SCHEMA_PG = `
@@ -571,6 +637,61 @@ const SCHEMA_PG = `
     reason TEXT,
     created_at BIGINT NOT NULL
   );
+  /* Build Games ENTRIES — see the sqlite schema comment. */
+  CREATE TABLE IF NOT EXISTS buildgames_entries (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    handle TEXT,
+    demo_url TEXT NOT NULL,
+    repo_url TEXT NOT NULL,
+    blurb TEXT,
+    contact_email TEXT NOT NULL,
+    edit_token TEXT NOT NULL UNIQUE,
+    newsletter_optin INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'submitted',
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS buildgames_entries_email ON buildgames_entries (contact_email);
+  CREATE TABLE IF NOT EXISTS buildgames_rec_clicks (
+    rec TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE TABLE IF NOT EXISTS rec_clicks (
+    src TEXT NOT NULL,
+    day TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (src, day)
+  );
+  CREATE TABLE IF NOT EXISTS rec_impressions (
+    src TEXT NOT NULL,
+    day TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (src, day)
+  );
+  CREATE TABLE IF NOT EXISTS model_demos (
+    id TEXT PRIMARY KEY,
+    model_slug TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'x',
+    source_url TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    author_handle TEXT,
+    author_name TEXT,
+    author_avatar_url TEXT,
+    text TEXT,
+    media_kind TEXT NOT NULL DEFAULT 'none',
+    media_url TEXT,
+    poster_url TEXT,
+    width INTEGER,
+    height INTEGER,
+    featured_order INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'live',
+    fetched_at BIGINT,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS model_demos_source ON model_demos (model_slug, source, source_id);
+  CREATE INDEX IF NOT EXISTS model_demos_model ON model_demos (model_slug, status, featured_order);
 `;
 
 /* Six fixed slots, three per rail side. Seed prices only — editable at runtime. */
@@ -713,6 +834,36 @@ function bgSponsorRow(row) {
   }
   return out;
 }
+
+/* Build Games entries: writable fields for the token-authorised edit path,
+   and the BIGINT columns for the PG string→number fix. Same rule as
+   PURCHASE_FIELDS: names reach SQL as identifiers, never from a request. */
+const BG_ENTRY_FIELDS = ['name', 'handle', 'demo_url', 'repo_url', 'blurb', 'newsletter_optin', 'status', 'updated_at'];
+
+function bgEntryParts(fields) {
+  const keys = Object.keys(fields).filter((k) => BG_ENTRY_FIELDS.includes(k));
+  if (keys.length === 0) throw new Error('updateBgEntry: no writable fields');
+  return keys;
+}
+
+const bgEntryRow = numericRow(['created_at', 'updated_at', 'newsletter_optin']);
+
+/* Model demos: writable fields for the curation API, BIGINT coercion. */
+const MD_FIELDS = [
+  'author_handle', 'author_name', 'author_avatar_url', 'text', 'media_kind', 'media_url',
+  'poster_url', 'width', 'height', 'featured_order', 'status', 'fetched_at', 'updated_at',
+];
+const MD_COLS = [
+  'id', 'model_slug', 'source', 'source_url', 'source_id', 'author_handle', 'author_name',
+  'author_avatar_url', 'text', 'media_kind', 'media_url', 'poster_url', 'width', 'height',
+  'featured_order', 'status', 'fetched_at', 'created_at', 'updated_at',
+];
+function mdParts(fields) {
+  const keys = Object.keys(fields).filter((k) => MD_FIELDS.includes(k));
+  if (keys.length === 0) throw new Error('updateModelDemo: no writable fields');
+  return keys;
+}
+const mdRow = numericRow(['width', 'height', 'featured_order', 'fetched_at', 'created_at', 'updated_at']);
 
 let driver;
 
@@ -1376,6 +1527,95 @@ async function pgDriver() {
       const r = await pool.query("SELECT * FROM buildgames_sponsors WHERE status IN ('active','held')");
       return r.rows.map(bgSponsorRow);
     },
+    /* ---- Build Games entries ---- */
+    async insertBgEntry(e) {
+      await pool.query(
+        `INSERT INTO buildgames_entries (id, name, handle, demo_url, repo_url, blurb, contact_email, edit_token, newsletter_optin, status, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [e.id, e.name, e.handle ?? null, e.demo_url, e.repo_url, e.blurb ?? null, e.contact_email, e.edit_token, e.newsletter_optin ? 1 : 0, e.status, e.created_at, e.updated_at]
+      );
+    },
+    // Edit page: the entrant is identified by TOKEN ONLY (unique index).
+    async bgEntryByEditToken(token) {
+      const r = await pool.query('SELECT * FROM buildgames_entries WHERE edit_token = $1', [token]);
+      return bgEntryRow(r.rows[0]);
+    },
+    async bgEntryByEmail(email) {
+      const r = await pool.query('SELECT * FROM buildgames_entries WHERE contact_email = $1 LIMIT 1', [email]);
+      return bgEntryRow(r.rows[0]);
+    },
+    async bgEntryByRepo(repoUrl) {
+      const r = await pool.query('SELECT * FROM buildgames_entries WHERE repo_url = $1 LIMIT 1', [repoUrl]);
+      return bgEntryRow(r.rows[0]);
+    },
+    async updateBgEntry(id, fields) {
+      const keys = bgEntryParts(fields);
+      const r = await pool.query(
+        `UPDATE buildgames_entries SET ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')} WHERE id = $1`,
+        [id, ...keys.map((k) => fields[k])]
+      );
+      return r.rowCount;
+    },
+    async bgEntryCount() {
+      const r = await pool.query("SELECT COUNT(*) AS n FROM buildgames_entries WHERE status = 'submitted'");
+      return Number(r.rows[0].n);
+    },
+    async bgRecClick(rec) {
+      await pool.query(
+        'INSERT INTO buildgames_rec_clicks (rec, count) VALUES ($1, 1) ON CONFLICT (rec) DO UPDATE SET count = buildgames_rec_clicks.count + 1',
+        [rec]
+      );
+    },
+    async recClick(src, day) {
+      await pool.query(
+        'INSERT INTO rec_clicks (src, day, count) VALUES ($1, $2, 1) ON CONFLICT (src, day) DO UPDATE SET count = rec_clicks.count + 1',
+        [src, day]
+      );
+    },
+    async recClickRows(sinceDay) {
+      const r = await pool.query('SELECT src, day, count FROM rec_clicks WHERE day >= $1 ORDER BY day, src', [sinceDay]);
+      return r.rows.map((x) => ({ ...x, count: Number(x.count) }));
+    },
+    async recImpression(src, day) {
+      await pool.query(
+        'INSERT INTO rec_impressions (src, day, count) VALUES ($1, $2, 1) ON CONFLICT (src, day) DO UPDATE SET count = rec_impressions.count + 1',
+        [src, day]
+      );
+    },
+    async recImpressionRows(sinceDay) {
+      const r = await pool.query('SELECT src, day, count FROM rec_impressions WHERE day >= $1 ORDER BY day, src', [sinceDay]);
+      return r.rows.map((x) => ({ ...x, count: Number(x.count) }));
+    },
+    /* ---- model demos ---- */
+    async insertModelDemo(d) {
+      await pool.query(
+        `INSERT INTO model_demos (${MD_COLS.join(', ')}) VALUES (${MD_COLS.map((_, i) => `$${i + 1}`).join(', ')})`,
+        MD_COLS.map((c) => d[c] ?? null)
+      );
+    },
+    async updateModelDemo(id, fields) {
+      const keys = mdParts(fields);
+      const r = await pool.query(
+        `UPDATE model_demos SET ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')} WHERE id = $1`,
+        [id, ...keys.map((k) => fields[k])]
+      );
+      return r.rowCount;
+    },
+    async modelDemoBySource(modelSlug, source, sourceId) {
+      const r = await pool.query('SELECT * FROM model_demos WHERE model_slug = $1 AND source = $2 AND source_id = $3', [modelSlug, source, sourceId]);
+      return mdRow(r.rows[0]);
+    },
+    async modelDemoById(id) {
+      const r = await pool.query('SELECT * FROM model_demos WHERE id = $1', [id]);
+      return mdRow(r.rows[0]);
+    },
+    async modelDemos(modelSlug, statuses) {
+      const r = await pool.query(
+        'SELECT * FROM model_demos WHERE model_slug = $1 AND status = ANY($2) ORDER BY featured_order ASC, created_at ASC',
+        [modelSlug, statuses]
+      );
+      return r.rows.map(mdRow);
+    },
     async buildByUserSlug(userId, slug) {
       const r = await pool.query(
         'SELECT * FROM builds WHERE user_id = $1 AND slug = $2',
@@ -1989,6 +2229,77 @@ async function sqliteDriver() {
     async bgSponsorsForRecheck() {
       return db.prepare("SELECT * FROM buildgames_sponsors WHERE status IN ('active','held')").all().map(bgSponsorRow);
     },
+    /* ---- Build Games entries ---- */
+    async insertBgEntry(e) {
+      db.prepare(
+        `INSERT INTO buildgames_entries (id, name, handle, demo_url, repo_url, blurb, contact_email, edit_token, newsletter_optin, status, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
+      ).run(e.id, e.name, e.handle ?? null, e.demo_url, e.repo_url, e.blurb ?? null, e.contact_email, e.edit_token, e.newsletter_optin ? 1 : 0, e.status, e.created_at, e.updated_at);
+    },
+    // Edit page: the entrant is identified by TOKEN ONLY (unique index).
+    async bgEntryByEditToken(token) {
+      return bgEntryRow(db.prepare('SELECT * FROM buildgames_entries WHERE edit_token = ?').get(token));
+    },
+    async bgEntryByEmail(email) {
+      return bgEntryRow(db.prepare('SELECT * FROM buildgames_entries WHERE contact_email = ? LIMIT 1').get(email));
+    },
+    async bgEntryByRepo(repoUrl) {
+      return bgEntryRow(db.prepare('SELECT * FROM buildgames_entries WHERE repo_url = ? LIMIT 1').get(repoUrl));
+    },
+    async updateBgEntry(id, fields) {
+      const keys = bgEntryParts(fields);
+      return db
+        .prepare(`UPDATE buildgames_entries SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`)
+        .run(...keys.map((k) => fields[k]), id).changes;
+    },
+    async bgEntryCount() {
+      return db.prepare("SELECT COUNT(*) AS n FROM buildgames_entries WHERE status = 'submitted'").get().n;
+    },
+    async bgRecClick(rec) {
+      db.prepare(
+        'INSERT INTO buildgames_rec_clicks (rec, count) VALUES (?, 1) ON CONFLICT(rec) DO UPDATE SET count = count + 1'
+      ).run(rec);
+    },
+    async recClick(src, day) {
+      db.prepare(
+        'INSERT INTO rec_clicks (src, day, count) VALUES (?, ?, 1) ON CONFLICT(src, day) DO UPDATE SET count = count + 1'
+      ).run(src, day);
+    },
+    async recClickRows(sinceDay) {
+      return db.prepare('SELECT src, day, count FROM rec_clicks WHERE day >= ? ORDER BY day, src').all(sinceDay);
+    },
+    async recImpression(src, day) {
+      db.prepare(
+        'INSERT INTO rec_impressions (src, day, count) VALUES (?, ?, 1) ON CONFLICT(src, day) DO UPDATE SET count = count + 1'
+      ).run(src, day);
+    },
+    async recImpressionRows(sinceDay) {
+      return db.prepare('SELECT src, day, count FROM rec_impressions WHERE day >= ? ORDER BY day, src').all(sinceDay);
+    },
+    /* ---- model demos ---- */
+    async insertModelDemo(d) {
+      db.prepare(`INSERT INTO model_demos (${MD_COLS.join(', ')}) VALUES (${MD_COLS.map(() => '?').join(', ')})`)
+        .run(...MD_COLS.map((c) => d[c] ?? null));
+    },
+    async updateModelDemo(id, fields) {
+      const keys = mdParts(fields);
+      return db
+        .prepare(`UPDATE model_demos SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`)
+        .run(...keys.map((k) => fields[k]), id).changes;
+    },
+    async modelDemoBySource(modelSlug, source, sourceId) {
+      return mdRow(db.prepare('SELECT * FROM model_demos WHERE model_slug = ? AND source = ? AND source_id = ?').get(modelSlug, source, sourceId));
+    },
+    async modelDemoById(id) {
+      return mdRow(db.prepare('SELECT * FROM model_demos WHERE id = ?').get(id));
+    },
+    async modelDemos(modelSlug, statuses) {
+      const marks = statuses.map(() => '?').join(', ');
+      return db
+        .prepare(`SELECT * FROM model_demos WHERE model_slug = ? AND status IN (${marks}) ORDER BY featured_order ASC, created_at ASC`)
+        .all(modelSlug, ...statuses)
+        .map(mdRow);
+    },
     async userBuildSlugs(userId) {
       return db.prepare('SELECT slug FROM builds WHERE user_id = ?').all(userId).map((x) => x.slug);
     },
@@ -2276,6 +2587,26 @@ export async function bgBlockHost(host, reason, ts = Date.now()) { return (await
 export async function bgUnblockHost(host) { return (await getDriver()).bgUnblockHost(host); }
 export async function bgIsHostBlocked(host) { return (await getDriver()).bgIsHostBlocked(host); }
 export async function bgSponsorsForRecheck() { return (await getDriver()).bgSponsorsForRecheck(); }
+
+/* ---- Build Games entries ---- */
+export async function insertBgEntry(e) { return (await getDriver()).insertBgEntry(e); }
+export async function bgEntryByEditToken(token) { return (await getDriver()).bgEntryByEditToken(token); }
+export async function bgEntryByEmail(email) { return (await getDriver()).bgEntryByEmail(email); }
+export async function bgEntryByRepo(repoUrl) { return (await getDriver()).bgEntryByRepo(repoUrl); }
+export async function updateBgEntry(id, fields) { return (await getDriver()).updateBgEntry(id, { ...fields, updated_at: Date.now() }); }
+export async function bgEntryCount() { return (await getDriver()).bgEntryCount(); }
+export async function bgRecClick(rec) { return (await getDriver()).bgRecClick(rec); }
+export async function recClick(src, day) { return (await getDriver()).recClick(src, day); }
+export async function recClickRows(sinceDay = '0000-00-00') { return (await getDriver()).recClickRows(sinceDay); }
+export async function recImpression(src, day) { return (await getDriver()).recImpression(src, day); }
+export async function recImpressionRows(sinceDay = '0000-00-00') { return (await getDriver()).recImpressionRows(sinceDay); }
+
+/* ---- model demos (/built-with) ---- */
+export async function insertModelDemo(d) { return (await getDriver()).insertModelDemo(d); }
+export async function updateModelDemo(id, fields) { return (await getDriver()).updateModelDemo(id, { ...fields, updated_at: Date.now() }); }
+export async function modelDemoBySource(modelSlug, source, sourceId) { return (await getDriver()).modelDemoBySource(modelSlug, source, sourceId); }
+export async function modelDemoById(id) { return (await getDriver()).modelDemoById(id); }
+export async function modelDemos(modelSlug, statuses = ['live']) { return (await getDriver()).modelDemos(modelSlug, statuses); }
 
 export async function updateBuild(id, fields) {
   return (await getDriver()).updateBuild(id, { ...fields, updated_at: Date.now() });

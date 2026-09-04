@@ -1,6 +1,7 @@
 import { purchaseByToken, rateLimit, updatePurchase } from '../../../lib/db.js';
 import { alertRob, button, esc, shell } from '../../../lib/mail.js';
 import { clientIp, json, readBody } from '../../../lib/request.js';
+import { hostedIconUrl } from '../../../lib/sponsor-icon.js';
 import {
   cleanText, cleanTint, cleanUrl, clearCache, DEFAULT_TINT, faviconUrl, LIMITS,
   signAction, siteUrl, usd, withUtm,
@@ -35,13 +36,26 @@ export async function POST({ request, clientAddress }) {
   if (!tagline) return json({ error: 'tagline is required' }, 400);
   if (!url) return json({ error: 'that URL looks off' }, 400);
 
-  const logoUrl = body.logo_url ? cleanUrl(body.logo_url) : null;
+  // logo_url is never taken from the form as-is: the card, the approval mail
+  // and the decide page all load it, so an arbitrary URL is a tracking
+  // beacon. Accepted only when it is THIS purchase's icon on our own R2 or
+  // exactly the favicon default for the URL being saved; otherwise the
+  // stored icon survives when it is ours, else the favicon default.
+  const submitted = body.logo_url ? cleanUrl(body.logo_url) : null;
+  const ours = (u) => hostedIconUrl(u, 'sponsor-icons') && String(u).includes(`/sponsor-icons/${purchase.id}-`);
+  const fallback = faviconUrl(url);
+  const logoUrl =
+    submitted && (ours(submitted) || submitted === fallback)
+      ? submitted
+      : ours(purchase.logo_url)
+        ? purchase.logo_url
+        : fallback;
   const now = Date.now();
   const fields = {
     name,
     tagline,
     url,
-    logo_url: logoUrl || faviconUrl(url),
+    logo_url: logoUrl,
     tint: cleanTint(body.tint) || purchase.tint || DEFAULT_TINT,
     status: 'submitted',
     submitted_at: now,

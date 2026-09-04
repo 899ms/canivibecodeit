@@ -1,12 +1,15 @@
 ---
 import { faviconUrl, tintChannels, usd, withUtm } from '../lib/sponsors.js';
 
-// Slot variants share one fixed size; the sold-out meta card is deliberately
-// smaller — it is a notice, not a placement.
-const { slot = null, soldOut = false, septLeft = null, nextMonth = 'next month', total = 10, index = 0 } = Astro.props;
-const state = soldOut ? 'soldout' : slot.state;
+// Slot variants share one fixed size; the sold-out and become-a-sponsor meta
+// cards are deliberately smaller — notices, not placements.
+const { slot = null, soldOut = false, more = false, septLeft = null, nextMonth = 'next month', total = 10, index = 0 } = Astro.props;
+// An open slot carrying a house card renders as 'house' on the rails; the
+// slot itself stays open (and buyable) everywhere else.
+const state = soldOut ? 'soldout' : more ? 'more' : slot.state === 'open' && slot.house ? 'house' : slot.state;
 const sponsor = slot?.sponsor;
 const icon = sponsor ? sponsor.logoUrl || faviconUrl(sponsor.url) : '';
+const house = slot?.house ?? null;
 ---
 
 {
@@ -25,6 +28,29 @@ const icon = sponsor ? sponsor.logoUrl || faviconUrl(sponsor.url) : '';
       </span>
       <span class="sp-name">{sponsor.name}</span>
       <span class="sp-tag">{sponsor.tagline}</span>
+    </a>
+  )
+}
+
+{
+  /* House card: our own placement in an otherwise-open slot — the same
+     markup and treatment as a live card, so the rail reads full. Campaign
+     'house' keeps its clicks distinguishable in analytics. */
+  state === 'house' && (
+    <a
+      class="sp-card live"
+      href={withUtm(house.url, 'house')}
+      target="_blank"
+      rel="sponsored noopener"
+      style={`--tint: ${tintChannels(house.tint)}; --i: ${index}`}
+      data-slot={slot.id}
+      data-state="house"
+    >
+      <span class="sp-icon">
+        <img src={house.logoUrl} alt="" width="26" height="26" loading="lazy" />
+      </span>
+      <span class="sp-name">{house.name}</span>
+      <span class="sp-tag">{house.tagline}</span>
     </a>
   )
 }
@@ -61,6 +87,20 @@ const icon = sponsor ? sponsor.logoUrl || faviconUrl(sponsor.url) : '';
     <a class="sp-card reserved" href="/sponsor" data-slot={slot.id} data-state="reserved">
       <span class="sp-label">RESERVED</span>
       <span class="sp-cta">someone's grabbing this slot; check back soon</span>
+    </a>
+  )
+}
+
+{
+  /* Bottom-of-rail path to /sponsor. Renders only when the board is fully
+     live — the buy-path when no open-slot cards exist; do not make
+     permanent (operator decision 2026-09-02). Currently unreferenced by
+     SponsorRails (the sold-out notice carries the fully-live state); kept
+     implemented and rediscoverable for when the board sells out. */
+  state === 'more' && (
+    <a class="sp-card soldout" href="/sponsor" data-state="more">
+      <span class="sp-label">BECOME A SPONSOR</span>
+      <span class="sp-cta">the pitch, the numbers, the board →</span>
     </a>
   )
 }
