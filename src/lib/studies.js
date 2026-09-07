@@ -15,7 +15,12 @@ export const STUDIES = [
   {
     slug: 'can-you-vibecode-ahrefs',
     number: 1,
-    title: 'can you vibecode ahrefs?',
+    // Display casing follows the Paper mockup (sentence case); the <title>
+    // and crumbs lowercase it.
+    title: 'Can you vibecode Ahrefs?',
+    // The death-list entry the study is about: its moat tags drive the
+    // highlighted rows of the "which moats actually held" chart.
+    subjectSlug: 'ahrefs',
     // Under 155 chars; the social description and the index card line.
     description:
       'I gave an AI agent six hours to rebuild Ahrefs from public data. It built all three tools in 45 minutes. Here is where every one of them hit the wall.',
@@ -65,3 +70,6 @@ export function studyDate(s) {
     timeZone: 'UTC',
   });
 }
+
+// "the weekend clone test" -> "The weekend clone test" (mockup casing).
+export const sentenceCase = (s) => String(s).replace(/^\s*([a-z])/, (m) => m.toUpperCase());

@@ -5482,10 +5482,9 @@ html.ruben-src [data-hide-for-ruben] {
    carries no component scope. Measure about 70ch. */
 
 .study-prose {
-  max-width: 70ch;
-  margin-top: 48px;
-  font-size: 16px;
-  line-height: 1.75;
+  max-width: 760px;
+  font-size: 15px;
+  line-height: 26px;
 }
 
 .study-prose > * + * {
@@ -5493,11 +5492,32 @@ html.ruben-src [data-hide-for-ruben] {
 }
 
 .study-prose h2 {
-  font-size: clamp(24px, 3vw, 30px);
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  font-size: 30px;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
   padding-top: 40px;
   scroll-margin-top: 90px;
+}
+
+/* chapter heading: number above the title, hairline above, mockup rhythm */
+.study-prose h2.ch {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 64px;
+  padding-top: 56px;
+  border-top: 1px solid var(--border);
+}
+
+.study-prose h2.ch .ch-num {
+  font: 14px/18px var(--font-mono);
+  letter-spacing: 0.14em;
+  color: var(--primary);
+}
+
+.study-prose h2.ch:first-child {
+  margin-top: 0;
+  padding-top: 24px;
 }
 
 .study-prose h3 {

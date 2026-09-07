@@ -1,16 +1,18 @@
 ---
-/* /studies/<slug>: one study. Structure (publish spec): crumbs, paid label,
-   cover (eyebrow, h1, standfirst, stat band), verdict box, contents, the
-   chapters as prose with figures, methods note, footer line, then the
-   standard footer. Registry: lib/studies.js. Prose: the content collection
-   entry with the same id. Gated by STUDIES_LIVE; unknown slugs 404. */
+/* /studies/<slug>: one study, laid out after the Paper mockup (artboard 24K-0,
+   "W: Ahrefs moat study page"): centred cover, stat band, the verdict, the
+   "which moats actually held" chart, the figure block, the three cards,
+   "What's inside", then the chapters as prose, the methods note and the
+   footer line. Registry: lib/studies.js. Prose and the per-study blocks:
+   the content collection entry with the same id. Gated by STUDIES_LIVE;
+   unknown slugs 404. */
 import { getEntry, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import PaidLabel from '../../components/PaidLabel.astro';
 import VerdictBadge from '../../components/VerdictBadge.astro';
-import { allApps, MOAT_TAG_DESCS } from '../../lib/apps.js';
+import { allApps, MOAT_TAG_DESCS, moatsInUse, VERDICTS } from '../../lib/apps.js';
 import { studiesLive } from '../../lib/flags.js';
-import { studyBySlug, studyDate, studyEyebrow, studyUrl } from '../../lib/studies.js';
+import { sentenceCase, studyBySlug, studyDate, studyEyebrow, studyUrl } from '../../lib/studies.js';
 
 if (!studiesLive()) return new Response(null, { status: 404 });
 
@@ -21,25 +23,45 @@ if (!study || !entry) return new Response(null, { status: 404 });
 const { Content, headings } = await render(entry);
 const fm = entry.data;
 
-// Counts come from the dataset, never from copy.
-const appCount = allApps().length;
+/* Numbers come from the dataset, never from copy. */
+const apps = allApps();
+const appCount = apps.length;
 const moatCount = Object.keys(MOAT_TAG_DESCS).length;
+const subject = study.subjectSlug ? apps.find((a) => a.slug === study.subjectSlug) : null;
+const subjectTags = new Set(subject?.moatTags ?? []);
+
+/* "Which moats actually held": share of apps per moat tag whose verdict is
+   NOT REALLY, every tag in use, strongest first. The subject's own tags are
+   the highlighted rows. */
+const held = moatsInUse()
+  .map((m) => {
+    const tagged = apps.filter((a) => (a.moatTags ?? []).includes(m.tag));
+    const kept = tagged.filter((a) => a.verdict === 'no').length;
+    return { tag: m.tag, label: m.label.toLowerCase(), n: tagged.length, pct: tagged.length ? Math.round((kept / tagged.length) * 100) : 0 };
+  })
+  .sort((a, b) => b.pct - a.pct || b.n - a.n);
+const heldMax = Math.max(1, ...held.map((r) => r.pct));
 
 /* Contents: the numbered chapters (## 1. … ## 7.). Descriptions come from
    frontmatter `contents` when given, else the first sentence of each
    chapter's opening paragraph. */
+// Astro collects heading text AFTER rehype-study has split the chapter
+// heading into "01" + "Title", so the text arrives as "01The weekend clone
+// test": digits, optional dot, optional space, title.
 const chapters = headings
-  .filter((h) => h.depth === 2 && /^\d+\.\s/.test(h.text))
-  .map((h) => ({ ...h, number: Number(h.text.match(/^(\d+)\./)[1], 10), label: h.text.replace(/^\d+\.\s*/, '') }))
+  .filter((h) => h.depth === 2 && /^\d{1,2}\.?\s*\S/.test(h.text))
+  .map((h) => {
+    const m = h.text.match(/^(\d{1,2})\.?\s*(.*)$/);
+    return { ...h, number: Number(m[1]), label: sentenceCase(m[2]) };
+  })
   .filter((h) => h.number >= 1);
 
-// Heading text comes back typographically quoted (curly apostrophes), the
-// raw body has straight ones: compare with both normalised.
-const straight = (s) => s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
-function firstSentence(headingText) {
+// First sentence of a chapter's opening paragraph, located in the raw body
+// by its number ("## 3. ..."), so heading casing and quotes never matter.
+function firstSentence(number) {
   const lines = entry.body.split('\n');
-  const want = straight(`## ${headingText}`);
-  const start = lines.findIndex((l) => straight(l.trim()) === want);
+  const re = new RegExp(`^##\\s+${number}\\.\\s`);
+  const start = lines.findIndex((l) => re.test(l.trim()));
   if (start < 0) return '';
   for (let i = start + 1; i < lines.length; i++) {
     const t = lines[i].trim();
@@ -52,12 +74,15 @@ function firstSentence(headingText) {
   }
   return '';
 }
-const contents = chapters.map((c, i) => ({ ...c, desc: fm.contents?.[i] ?? firstSentence(c.text) }));
+const contents = chapters.map((c, i) => ({ ...c, desc: fm.contents?.[i] ?? firstSentence(c.number) }));
 
+const verdictWord = VERDICTS[fm.verdict]?.label ?? 'NOT REALLY';
 const dateline = studyDate(study);
-const title = `${study.title} · moat study no. ${study.number} · Can I Vibecode It?`;
+// <title> keeps the spec's lowercase pattern; the page shows the mockup's casing.
+const title = `${study.title.toLowerCase()} · moat study no. ${study.number} · Can I Vibecode It?`;
 const description = study.description;
 const url = studyUrl(study);
+const figNo = (i) => `FIG ${String(i).padStart(2, '0')}`;
 
 const jsonld = [
   {
@@ -93,58 +118,127 @@ const jsonld = [
 
 <Base {title} {description} {jsonld} ogImage={study.ogImage}>
   <main class="wrap study">
-    <nav class="crumbs" aria-label="Breadcrumb">
-      <a href="/">the death list</a> / <a href="/studies">studies</a> / <span class="here">{study.title}</span>
+    <nav class="crumbs st-crumbs" aria-label="Breadcrumb">
+      <a href="/">the death list</a> / <a href="/studies">studies</a> / <span class="here">{study.title.toLowerCase()}</span>
     </nav>
 
-    <div class="study-label">
+    {/* cover: centred column, mockup rhythm 96 / 24 / 72 */}
+    <header class="st-cover">
       <PaidLabel study={study} />
-    </div>
-
-    <header class="study-cover">
-      <p class="study-eyebrow">{studyEyebrow(study)}</p>
-      <h1>{fm.title}</h1>
-      <p class="study-standfirst">{fm.standfirst}</p>
-      {dateline && <p class="study-dateline">published {dateline}{fm.updated ? ` · updated ${studyDate({ publishedAt: fm.updated })}` : ''}</p>}
+      <p class="st-eyebrow">{studyEyebrow(study)}</p>
+      <h1>{study.title}</h1>
+      <p class="st-standfirst">{fm.standfirst}</p>
+      {dateline && <p class="st-dateline">published {dateline}{fm.updated ? ` · updated ${studyDate({ publishedAt: fm.updated })}` : ''}</p>}
     </header>
 
-    <dl class="study-stats" aria-label="At a glance">
+    {/* stat band */}
+    <dl class="st-stats" aria-label="At a glance">
       <div>
-        <dt>apps in the dataset</dt>
         <dd>{appCount.toLocaleString('en-US')}</dd>
+        <dt>apps in the dataset</dt>
       </div>
       <div>
-        <dt>moat types scored</dt>
         <dd>{moatCount}</dd>
+        <dt>moat types scored</dt>
       </div>
       <div>
-        <dt>{study.cloneAttempts === 1 ? 'clone attempt' : 'clone attempts'}</dt>
         <dd>{study.cloneAttempts}</dd>
+        <dt>{study.cloneAttempts === 1 ? 'clone attempt' : 'clone attempts'}</dt>
       </div>
       <div>
+        <dd class:list={['st-stat-verdict', fm.verdict]}>{verdictWord}</dd>
         <dt>the short version</dt>
-        <dd class="study-stat-verdict"><VerdictBadge verdict={fm.verdict} /></dd>
       </div>
     </dl>
 
-    <section class="study-verdict" aria-label="Verdict">
-      <span class="study-verdict-badge"><VerdictBadge verdict={fm.verdict} big /></span>
-      <p>{fm.verdict_text}</p>
+    {/* the verdict, centred like the cover */}
+    <section class="st-verdict" aria-label="Verdict">
+      <VerdictBadge verdict={fm.verdict} big />
+      <p class="st-verdict-text">{fm.verdict_text}</p>
+      {fm.opener && <p class="st-opener">{fm.opener}</p>}
     </section>
 
-    {fm.opener && <p class="study-opener">{fm.opener}</p>}
+    {/* which moats actually held: live numbers */}
+    <section class="st-band st-chart" aria-labelledby="held-head">
+      <div class="st-chart-intro">
+        <h2 id="held-head">Which moats actually held.</h2>
+        <p>
+          Share of apps per moat type that kept a {verdictWord} verdict across {appCount.toLocaleString('en-US')} reviews.
+          {subject ? ` ${study.sponsor.name} carries ${subjectTags.size === 1 ? 'one' : subjectTags.size} of the ${moatCount}: the highlighted rows.` : ''}
+        </p>
+        <p class="st-chart-note">live numbers from the dataset</p>
+      </div>
+      <ol class="st-bars" aria-label="Held verdicts per moat type">
+        {
+          held.map((r) => (
+            <li class:list={['st-bar-row', { hit: subjectTags.has(r.tag) }]}>
+              <a class="st-bar-label" href={`/moat/${r.tag}`}>{r.label}</a>
+              <span class="st-bar-track"><i class="st-bar" style={`width: ${Math.max(2, (r.pct / heldMax) * 100)}%`}></i></span>
+              <span class="st-bar-pct">{r.pct}%</span>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
 
+    {/* figure block: the cover figure, then a row of two */}
+    {
+      (fm.cover_figure || fm.row_figures?.length) && (
+        <section class="st-band st-figs" aria-label="Figures">
+          {fm.cover_figure && (
+            <figure class="st-fig st-fig-cover">
+              <img src={fm.cover_figure.src} alt={fm.cover_figure.alt} loading="lazy" decoding="async" />
+              {fm.cover_figure.caption && <figcaption>{figNo(1)} · {fm.cover_figure.caption}</figcaption>}
+            </figure>
+          )}
+          {fm.row_figures?.length > 0 && (
+            <div class="st-fig-row">
+              {fm.row_figures.map((f, i) => (
+                <figure class="st-fig">
+                  <img src={f.src} alt={f.alt} loading="lazy" decoding="async" />
+                  {f.caption && <figcaption>{figNo(i + (fm.cover_figure ? 2 : 1))} · {f.caption}</figcaption>}
+                </figure>
+              ))}
+            </div>
+          )}
+        </section>
+      )
+    }
+
+    {/* the three cards */}
+    {
+      fm.cards && (
+        <section class="st-band st-cards" aria-labelledby="cards-head">
+          <div class="st-cards-intro">
+            {fm.cards.eyebrow && <p class="st-eyebrow left">{fm.cards.eyebrow}</p>}
+            <h2 id="cards-head">{fm.cards.title}</h2>
+            {fm.cards.intro && <p>{fm.cards.intro}</p>}
+          </div>
+          <div class="st-card-row">
+            {fm.cards.items.map((c) => (
+              <article class:list={['st-card', { accent: c.accent }]}>
+                <p class="st-card-label">{c.label}</p>
+                <h3>{c.title}</h3>
+                <p class="st-card-body">{c.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    {/* what's inside */}
     {
       contents.length > 0 && (
-        <nav class="study-contents" aria-label="Contents">
-          <h2 class="study-contents-head">what's inside</h2>
+        <nav class="st-band st-contents" aria-label="Contents">
+          <h2>What's inside.</h2>
           <ol>
             {contents.map((c) => (
               <li>
                 <a href={`#${c.slug}`}>
-                  <span class="sc-num">{String(c.number).padStart(2, '0')}</span>
-                  <span class="sc-name">{c.label}</span>
-                  <span class="sc-line">{c.desc}</span>
+                  <span class="st-c-num">{String(c.number).padStart(2, '0')}</span>
+                  <span class="st-c-title">{c.label}</span>
+                  <span class="st-c-desc">{c.desc}</span>
                 </a>
               </li>
             ))}
@@ -153,273 +247,525 @@ const jsonld = [
       )
     }
 
-    <article class="study-prose">
-      <Content />
-    </article>
+    {/* the chapters */}
+    <section class="st-band st-prose-wrap">
+      <article class="study-prose">
+        <Content />
+      </article>
+    </section>
 
-    <footer class="study-foot">
-      <p class="study-foot-line">{fm.footer_line}</p>
-      <div class="study-foot-row">
+    {/* footer line */}
+    <footer class="st-band st-foot">
+      <div class="st-foot-left">
+        <p class="st-foot-line">{fm.footer_line}</p>
         <PaidLabel study={study} />
-        <a
-          class="study-sponsor"
-          href={study.sponsor.url}
-          target="_blank"
-          rel="sponsored noopener"
-          aria-label={`${study.sponsor.name} (opens in a new tab)`}
-        >
-          <span class="study-sponsor-pre">commissioned by</span>
-          {study.sponsor.logo ? (
-            <img src={study.sponsor.logo} alt={study.sponsor.name} height="20" loading="lazy" />
-          ) : (
-            <span class="study-sponsor-mark">{study.sponsor.name}</span>
-          )}
-        </a>
       </div>
+      <a
+        class="st-partner"
+        href={study.sponsor.url}
+        target="_blank"
+        rel="sponsored noopener"
+        aria-label={`${study.sponsor.name} (opens in a new tab)`}
+      >
+        <span class="st-partner-pre">in partnership with</span>
+        {study.sponsor.logo ? (
+          <span class="st-partner-box"><img src={study.sponsor.logo} alt={study.sponsor.name} height="22" loading="lazy" /></span>
+        ) : (
+          <span class="st-partner-box">{study.sponsor.name}</span>
+        )}
+      </a>
     </footer>
   </main>
 </Base>
 
 <style>
-  .study {
+  /* Content column = .wrap (1120 like the mockup's 160px margins on 1440),
+     which also steps aside for the sponsor rails; sections span it. */
+  .st-verdict {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .st-crumbs {
+    padding-top: 40px;
+  }
+
+  /* ---------- cover ---------- */
+  .st-cover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 24px;
+    padding-top: 72px;
+    padding-bottom: 72px;
+  }
+
+  .st-eyebrow {
+    font: 500 14px/16px var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  .st-eyebrow.left {
+    text-align: left;
+  }
+
+  .st-cover h1 {
+    font-size: clamp(40px, 5.2vw, 72px);
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    max-width: 20ch;
+  }
+
+  .st-standfirst {
+    max-width: 680px;
+    font: 16px/26px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .st-dateline {
+    font: 12px/16px var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---------- stat band ---------- */
+  .st-stats {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    /* the mockup's 120px at a full 1120 column; the rails narrow the column
+       to ~940px at 1440, so the gap scales down instead of wrapping tiles */
+    gap: 40px clamp(40px, 6vw, 120px);
+    padding-top: 52px;
+    padding-bottom: 52px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .st-stats div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .st-stats dd {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 44px;
+    line-height: 54px;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .st-stats dt {
+    font: 12px/16px var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .st-stat-verdict.no {
+    color: var(--no-bg);
+  }
+
+  .st-stat-verdict.kinda {
+    color: var(--kinda-bg);
+  }
+
+  .st-stat-verdict.yes {
+    color: var(--primary);
+  }
+
+  /* ---------- verdict ---------- */
+  .st-verdict {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 22px;
+    padding-top: 72px;
+    max-width: 800px;
+  }
+
+  .st-verdict-text {
+    font: 16px/26px var(--font-mono);
+  }
+
+  .st-opener {
+    font: 14px/24px var(--font-mono);
+    color: var(--muted);
+    max-width: 680px;
+  }
+
+  /* ---------- which moats actually held ---------- */
+  .st-chart {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    gap: 96px;
+    padding-top: 88px;
     padding-bottom: 40px;
   }
 
-  .study-label {
-    padding-top: 28px;
+  .st-chart-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
   }
 
-  /* cover */
-  .study-cover {
-    padding-top: 34px;
-    max-width: 78ch;
+  .st-band h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
   }
 
-  .study-eyebrow {
-    font: 12px var(--font-mono);
-    letter-spacing: 0.12em;
+  .st-chart-intro p {
+    font: 14px/24px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .st-chart-note {
+    font-size: 11px !important;
+    line-height: 14px !important;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+  }
+
+  .st-bars {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 8px;
+  }
+
+  .st-bar-row {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr) 48px;
+    align-items: center;
+    gap: 16px;
+    font: 14px/16px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .st-bar-label {
+    text-align: right;
+    color: inherit;
+  }
+
+  .st-bar-label:hover {
+    color: var(--fg);
+  }
+
+  .st-bar-track {
+    display: block;
+    max-width: 400px;
+  }
+
+  .st-bar {
+    display: block;
+    height: 22px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  .st-bar-row.hit {
+    color: var(--fg);
+  }
+
+  .st-bar-row.hit .st-bar {
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .st-bar-row.hit .st-bar-pct {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  /* ---------- figures ---------- */
+  .st-figs {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 48px;
+    padding-bottom: 40px;
+  }
+
+  .st-fig img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .st-fig figcaption {
+    padding-top: 18px;
+    font: 12px/16px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .st-fig-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin-top: 14px;
+  }
+
+  /* ---------- the three cards ---------- */
+  .st-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    margin-top: 48px;
+    padding-top: 88px;
+    padding-bottom: 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  .st-cards-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 760px;
+  }
+
+  .st-cards-intro p:not(.st-eyebrow) {
+    font: 14px/24px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .st-card-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  .st-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .st-card.accent {
+    border-color: var(--primary);
+  }
+
+  .st-card-label {
+    font: 12px/16px var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .st-card.accent .st-card-label {
     color: var(--primary);
   }
 
-  .study-cover h1 {
-    padding-top: 12px;
-    font-size: clamp(38px, 6.4vw, 72px);
-    line-height: 1.02;
-    letter-spacing: -0.03em;
-  }
-
-  .study-standfirst {
-    padding-top: 22px;
-    font-size: clamp(16px, 1.6vw, 19px);
-    line-height: 1.6;
-    color: var(--fg);
-    max-width: 64ch;
-  }
-
-  .study-dateline {
-    padding-top: 12px;
-    font: 12px var(--font-mono);
-    color: var(--muted);
-  }
-
-  /* stat band: hairlines top and bottom, four tiles */
-  .study-stats {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 44px;
-    padding: 26px 0;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .study-stats div {
-    display: flex;
-    flex-direction: column-reverse;
-    gap: 8px;
-    text-align: center;
-  }
-
-  .study-stats dt {
-    font: 11px var(--font-mono);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .study-stats dd {
+  .st-card h3 {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: clamp(30px, 3.6vw, 42px);
-    letter-spacing: -0.02em;
-    line-height: 1;
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 1.3;
   }
 
-  .study-stat-verdict {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 42px;
-  }
-
-  @media (max-width: 640px) {
-    .study-stats {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 22px 12px;
-    }
-  }
-
-  /* verdict box */
-  .study-verdict {
-    display: flex;
-    align-items: flex-start;
-    gap: 22px;
-    margin-top: 36px;
-    padding: 22px 24px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--surface);
-    max-width: 78ch;
-  }
-
-  /* the big badge keeps its one line; only the text column flexes */
-  .study-verdict-badge {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
-  .study-verdict p {
-    font-size: 16px;
-    line-height: 1.65;
-  }
-
-  @media (max-width: 640px) {
-    .study-verdict {
-      flex-direction: column;
-      gap: 14px;
-    }
-  }
-
-  .study-opener {
-    padding-top: 22px;
-    font-size: 15px;
-    line-height: 1.7;
+  .st-card-body {
+    font: 14px/22px var(--font-mono);
     color: var(--muted);
-    max-width: 70ch;
   }
 
-  /* contents */
-  .study-contents {
-    margin-top: 48px;
-    max-width: 78ch;
+  /* ---------- what's inside ---------- */
+  .st-contents {
+    padding-top: 88px;
+    padding-bottom: 24px;
   }
 
-  .study-contents-head {
-    font-size: 24px;
-    padding-bottom: 12px;
+  .st-contents h2 {
+    line-height: 44px;
+    padding-bottom: 36px;
   }
 
-  .study-contents ol {
+  .st-contents ol {
     list-style: none;
-    border-top: 1px solid var(--border);
   }
 
-  .study-contents li a {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 220px) minmax(0, 1fr);
-    gap: 16px;
-    align-items: baseline;
-    padding: 14px 0;
+  .st-contents li:last-child a {
     border-bottom: 1px solid var(--border);
+  }
+
+  .st-contents a {
+    display: grid;
+    grid-template-columns: 44px 340px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 28px;
+    padding: 22px 0;
+    border-top: 1px solid var(--border);
     color: var(--fg);
     text-decoration: none;
   }
 
-  .study-contents li a:hover .sc-name {
+  .st-contents a:hover .st-c-title {
     color: var(--primary);
   }
 
-  .sc-num {
-    font: 12px var(--font-mono);
+  .st-c-num {
+    font: 14px/18px var(--font-mono);
     color: var(--primary);
   }
 
-  .sc-name {
+  .st-c-title {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: -0.01em;
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 24px;
     transition: color 0.15s ease;
   }
 
-  .sc-line {
-    font: 12.5px/1.6 var(--font-mono);
+  .st-c-desc {
+    font: 14px/22px var(--font-mono);
     color: var(--muted);
   }
 
-  @media (max-width: 640px) {
-    .study-contents li a {
-      grid-template-columns: 30px minmax(0, 1fr);
-    }
-
-    .sc-line {
-      grid-column: 2;
-    }
+  /* ---------- prose ---------- */
+  .st-prose-wrap {
+    padding-top: 24px;
   }
 
-  /* footer line */
-  .study-foot {
-    margin-top: 56px;
-    padding-top: 28px;
-    border-top: 1px solid var(--border);
-    max-width: 78ch;
-  }
-
-  .study-foot-line {
-    font-size: 15px;
-    line-height: 1.7;
-    max-width: 70ch;
-  }
-
-  .study-foot-row {
+  /* ---------- footer line ---------- */
+  .st-foot {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding-top: 22px;
+    gap: 40px;
+    padding-top: 56px;
+    padding-bottom: 72px;
   }
 
-  .study-sponsor {
+  .st-foot-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    max-width: 720px;
+  }
+
+  .st-foot-line {
+    font: 14px/24px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .st-partner {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    flex-shrink: 0;
     color: var(--fg);
     text-decoration: none;
   }
 
-  .study-sponsor-pre {
-    font: 11px var(--font-mono);
-    letter-spacing: 0.1em;
+  .st-partner-pre {
+    font: 12px/16px var(--font-mono);
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--muted);
   }
 
-  .study-sponsor img {
+  .st-partner-box {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  .st-partner-box img {
     display: block;
-    height: 20px;
+    height: 22px;
     width: auto;
   }
 
-  .study-sponsor-mark {
-    display: inline-block;
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: -0.01em;
+  /* ---------- narrow viewports: one column, same order ---------- */
+  @media (max-width: 900px) {
+    .st-chart {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 36px;
+      padding-top: 64px;
+    }
+
+    .st-card-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .st-contents a {
+      grid-template-columns: 44px minmax(0, 1fr);
+      row-gap: 8px;
+    }
+
+    .st-c-desc {
+      grid-column: 2;
+    }
+
+    .st-foot {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .st-cover {
+      padding-top: 48px;
+      padding-bottom: 48px;
+      gap: 18px;
+    }
+
+    .st-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 32px 16px;
+      padding-top: 36px;
+      padding-bottom: 36px;
+    }
+
+    .st-stats dd {
+      font-size: 36px;
+      line-height: 44px;
+    }
+
+    .st-verdict {
+      padding-top: 48px;
+    }
+
+    .st-bar-row {
+      grid-template-columns: 116px minmax(0, 1fr) 44px;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .st-fig-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .st-cards,
+    .st-contents {
+      padding-top: 56px;
+    }
+
+    .st-band h2 {
+      font-size: 26px;
+    }
   }
 </style>
