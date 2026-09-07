@@ -1,0 +1,425 @@
+---
+/* /studies/<slug>: one study. Structure (publish spec): crumbs, paid label,
+   cover (eyebrow, h1, standfirst, stat band), verdict box, contents, the
+   chapters as prose with figures, methods note, footer line, then the
+   standard footer. Registry: lib/studies.js. Prose: the content collection
+   entry with the same id. Gated by STUDIES_LIVE; unknown slugs 404. */
+import { getEntry, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import PaidLabel from '../../components/PaidLabel.astro';
+import VerdictBadge from '../../components/VerdictBadge.astro';
+import { allApps, MOAT_TAG_DESCS } from '../../lib/apps.js';
+import { studiesLive } from '../../lib/flags.js';
+import { studyBySlug, studyDate, studyEyebrow, studyUrl } from '../../lib/studies.js';
+
+if (!studiesLive()) return new Response(null, { status: 404 });
+
+const study = studyBySlug(Astro.params.slug);
+const entry = study ? await getEntry('studies', study.slug) : null;
+if (!study || !entry) return new Response(null, { status: 404 });
+
+const { Content, headings } = await render(entry);
+const fm = entry.data;
+
+// Counts come from the dataset, never from copy.
+const appCount = allApps().length;
+const moatCount = Object.keys(MOAT_TAG_DESCS).length;
+
+/* Contents: the numbered chapters (## 1. … ## 7.). Descriptions come from
+   frontmatter `contents` when given, else the first sentence of each
+   chapter's opening paragraph. */
+const chapters = headings
+  .filter((h) => h.depth === 2 && /^\d+\.\s/.test(h.text))
+  .map((h) => ({ ...h, number: Number(h.text.match(/^(\d+)\./)[1], 10), label: h.text.replace(/^\d+\.\s*/, '') }))
+  .filter((h) => h.number >= 1);
+
+// Heading text comes back typographically quoted (curly apostrophes), the
+// raw body has straight ones: compare with both normalised.
+const straight = (s) => s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
+function firstSentence(headingText) {
+  const lines = entry.body.split('\n');
+  const want = straight(`## ${headingText}`);
+  const start = lines.findIndex((l) => straight(l.trim()) === want);
+  if (start < 0) return '';
+  for (let i = start + 1; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (!t) continue;
+    if (t.startsWith('#')) break;
+    if (t.startsWith('![') || t.startsWith('[') || t.startsWith('|') || t.startsWith('>')) continue;
+    const plain = t.replace(/\*\*|__|`/g, '');
+    const m = plain.match(/^(.+?[.?!])(\s|$)/);
+    return (m ? m[1] : plain).trim();
+  }
+  return '';
+}
+const contents = chapters.map((c, i) => ({ ...c, desc: fm.contents?.[i] ?? firstSentence(c.text) }));
+
+const dateline = studyDate(study);
+const title = `${study.title} · moat study no. ${study.number} · Can I Vibecode It?`;
+const description = study.description;
+const url = studyUrl(study);
+
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: study.title,
+    description,
+    mainEntityOfPage: url,
+    image: `https://canivibecodeit.com${study.ogImage}`,
+    ...(study.publishedAt ? { datePublished: study.publishedAt } : {}),
+    ...(fm.updated || study.publishedAt ? { dateModified: fm.updated ?? study.publishedAt } : {}),
+    author: { '@type': 'Person', name: 'Rob Hallam', url: 'https://x.com/robj3d3' },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Can I Vibecode It?',
+      url: 'https://canivibecodeit.com',
+      logo: { '@type': 'ImageObject', url: 'https://canivibecodeit.com/logo-512.png' },
+    },
+    sponsor: { '@type': 'Organization', name: study.sponsor.name, url: study.sponsor.url },
+    isAccessibleForFree: true,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'The Death List', item: 'https://canivibecodeit.com/' },
+      { '@type': 'ListItem', position: 2, name: 'Studies', item: 'https://canivibecodeit.com/studies' },
+      { '@type': 'ListItem', position: 3, name: study.title, item: url },
+    ],
+  },
+];
+---
+
+<Base {title} {description} {jsonld} ogImage={study.ogImage}>
+  <main class="wrap study">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/">the death list</a> / <a href="/studies">studies</a> / <span class="here">{study.title}</span>
+    </nav>
+
+    <div class="study-label">
+      <PaidLabel study={study} />
+    </div>
+
+    <header class="study-cover">
+      <p class="study-eyebrow">{studyEyebrow(study)}</p>
+      <h1>{fm.title}</h1>
+      <p class="study-standfirst">{fm.standfirst}</p>
+      {dateline && <p class="study-dateline">published {dateline}{fm.updated ? ` · updated ${studyDate({ publishedAt: fm.updated })}` : ''}</p>}
+    </header>
+
+    <dl class="study-stats" aria-label="At a glance">
+      <div>
+        <dt>apps in the dataset</dt>
+        <dd>{appCount.toLocaleString('en-US')}</dd>
+      </div>
+      <div>
+        <dt>moat types scored</dt>
+        <dd>{moatCount}</dd>
+      </div>
+      <div>
+        <dt>{study.cloneAttempts === 1 ? 'clone attempt' : 'clone attempts'}</dt>
+        <dd>{study.cloneAttempts}</dd>
+      </div>
+      <div>
+        <dt>the short version</dt>
+        <dd class="study-stat-verdict"><VerdictBadge verdict={fm.verdict} /></dd>
+      </div>
+    </dl>
+
+    <section class="study-verdict" aria-label="Verdict">
+      <span class="study-verdict-badge"><VerdictBadge verdict={fm.verdict} big /></span>
+      <p>{fm.verdict_text}</p>
+    </section>
+
+    {fm.opener && <p class="study-opener">{fm.opener}</p>}
+
+    {
+      contents.length > 0 && (
+        <nav class="study-contents" aria-label="Contents">
+          <h2 class="study-contents-head">what's inside</h2>
+          <ol>
+            {contents.map((c) => (
+              <li>
+                <a href={`#${c.slug}`}>
+                  <span class="sc-num">{String(c.number).padStart(2, '0')}</span>
+                  <span class="sc-name">{c.label}</span>
+                  <span class="sc-line">{c.desc}</span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )
+    }
+
+    <article class="study-prose">
+      <Content />
+    </article>
+
+    <footer class="study-foot">
+      <p class="study-foot-line">{fm.footer_line}</p>
+      <div class="study-foot-row">
+        <PaidLabel study={study} />
+        <a
+          class="study-sponsor"
+          href={study.sponsor.url}
+          target="_blank"
+          rel="sponsored noopener"
+          aria-label={`${study.sponsor.name} (opens in a new tab)`}
+        >
+          <span class="study-sponsor-pre">commissioned by</span>
+          {study.sponsor.logo ? (
+            <img src={study.sponsor.logo} alt={study.sponsor.name} height="20" loading="lazy" />
+          ) : (
+            <span class="study-sponsor-mark">{study.sponsor.name}</span>
+          )}
+        </a>
+      </div>
+    </footer>
+  </main>
+</Base>
+
+<style>
+  .study {
+    padding-bottom: 40px;
+  }
+
+  .study-label {
+    padding-top: 28px;
+  }
+
+  /* cover */
+  .study-cover {
+    padding-top: 34px;
+    max-width: 78ch;
+  }
+
+  .study-eyebrow {
+    font: 12px var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  .study-cover h1 {
+    padding-top: 12px;
+    font-size: clamp(38px, 6.4vw, 72px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+
+  .study-standfirst {
+    padding-top: 22px;
+    font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.6;
+    color: var(--fg);
+    max-width: 64ch;
+  }
+
+  .study-dateline {
+    padding-top: 12px;
+    font: 12px var(--font-mono);
+    color: var(--muted);
+  }
+
+  /* stat band: hairlines top and bottom, four tiles */
+  .study-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 44px;
+    padding: 26px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .study-stats div {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .study-stats dt {
+    font: 11px var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .study-stats dd {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(30px, 3.6vw, 42px);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .study-stat-verdict {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 42px;
+  }
+
+  @media (max-width: 640px) {
+    .study-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px 12px;
+    }
+  }
+
+  /* verdict box */
+  .study-verdict {
+    display: flex;
+    align-items: flex-start;
+    gap: 22px;
+    margin-top: 36px;
+    padding: 22px 24px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    max-width: 78ch;
+  }
+
+  /* the big badge keeps its one line; only the text column flexes */
+  .study-verdict-badge {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .study-verdict p {
+    font-size: 16px;
+    line-height: 1.65;
+  }
+
+  @media (max-width: 640px) {
+    .study-verdict {
+      flex-direction: column;
+      gap: 14px;
+    }
+  }
+
+  .study-opener {
+    padding-top: 22px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 70ch;
+  }
+
+  /* contents */
+  .study-contents {
+    margin-top: 48px;
+    max-width: 78ch;
+  }
+
+  .study-contents-head {
+    font-size: 24px;
+    padding-bottom: 12px;
+  }
+
+  .study-contents ol {
+    list-style: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .study-contents li a {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 220px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    text-decoration: none;
+  }
+
+  .study-contents li a:hover .sc-name {
+    color: var(--primary);
+  }
+
+  .sc-num {
+    font: 12px var(--font-mono);
+    color: var(--primary);
+  }
+
+  .sc-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    transition: color 0.15s ease;
+  }
+
+  .sc-line {
+    font: 12.5px/1.6 var(--font-mono);
+    color: var(--muted);
+  }
+
+  @media (max-width: 640px) {
+    .study-contents li a {
+      grid-template-columns: 30px minmax(0, 1fr);
+    }
+
+    .sc-line {
+      grid-column: 2;
+    }
+  }
+
+  /* footer line */
+  .study-foot {
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    max-width: 78ch;
+  }
+
+  .study-foot-line {
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 70ch;
+  }
+
+  .study-foot-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 22px;
+  }
+
+  .study-sponsor {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--fg);
+    text-decoration: none;
+  }
+
+  .study-sponsor-pre {
+    font: 11px var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .study-sponsor img {
+    display: block;
+    height: 20px;
+    width: auto;
+  }
+
+  .study-sponsor-mark {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+</style>

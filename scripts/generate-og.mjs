@@ -7,10 +7,12 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { SHOWCASE_MODELS } from '../src/lib/models.js';
+import { STUDIES, paidLabelShort } from '../src/lib/studies.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const outDir = path.join(root, 'public/og');
 mkdirSync(outDir, { recursive: true });
+mkdirSync(path.join(outDir, 'studies'), { recursive: true });
 
 // Local build cache: maps output file -> hash of everything that fed its render.
 // Not committed (gitignored) — a fresh checkout just rebuilds everything once.
@@ -208,6 +210,53 @@ function newsletterCard() {
   ]);
 }
 
+/* Study card (publish spec 6): eyebrow, title, the verdict chip, and the
+   paid-partnership line small at the bottom. One per registry entry at
+   og/studies/<slug>.png; the index card is og/studies.png. */
+function studyCard(study) {
+  const v = VERDICT[study.verdict];
+  return page([
+    logoRow,
+    el('div', { display: 'flex', flexDirection: 'column', gap: 28, marginTop: 52 }, [
+      el('div', { ...mono(26, COLORS.green), letterSpacing: '0.14em' }, `MOAT STUDY NO. ${study.number}`),
+      el('div', {
+        fontFamily: 'Space Grotesk', fontSize: 84, fontWeight: 700,
+        color: COLORS.fg, letterSpacing: '-0.02em', lineHeight: 1.05,
+      }, study.title),
+      el('div', { display: 'flex', alignItems: 'center', gap: 22 }, [
+        el('div', {
+          ...mono(30, v.fg, 700), backgroundColor: v.bg,
+          padding: '14px 28px', borderRadius: 10,
+        }, v.label.split(' · ')[0]),
+        el('div', mono(28, COLORS.muted), 'one clone attempt, with receipts'),
+      ]),
+    ]),
+    // Two short rows, not one: the URL and the paid line together overrun 1200px.
+    el('div', { display: 'flex', flexDirection: 'column', gap: 12, marginTop: 'auto' }, [
+      el('div', mono(22, COLORS.muted), `canivibecodeit.com/studies/${study.slug}`),
+      el('div', mono(22, COLORS.muted), `${paidLabelShort(study)} · verdicts ours`),
+    ]),
+  ]);
+}
+
+function studiesIndexCard() {
+  return page([
+    logoRow,
+    el('div', { display: 'flex', flexDirection: 'column', gap: 30, marginTop: 56 }, [
+      el('div', { ...mono(26, COLORS.muted), letterSpacing: '0.14em' }, 'STUDIES'),
+      el('div', {
+        fontFamily: 'Space Grotesk', fontSize: 84, fontWeight: 700,
+        color: COLORS.fg, letterSpacing: '-0.02em', lineHeight: 1.05,
+      }, 'the long answers'),
+      el('div', mono(30, COLORS.muted), 'one app, one clone attempt, and exactly where the moat holds.'),
+    ]),
+    el('div', { display: 'flex', marginTop: 'auto', justifyContent: 'space-between' }, [
+      el('div', mono(22, COLORS.muted), 'canivibecodeit.com/studies'),
+      el('div', mono(22, COLORS.muted), 'paid partnerships · verdicts ours →'),
+    ]),
+  ]);
+}
+
 async function render(node, file) {
   const svg = await satori(node, { width: 1200, height: 630, fonts });
   const png = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng();
@@ -280,6 +329,10 @@ if (range) {
   await renderCached(newsletterCard(), 'newsletter.png', 'newsletter:1', cache);
   for (const m of SHOWCASE_MODELS) {
     await renderCached(builtWithCard(m), `built-with-${m.slug}.png`, `built-with:${m.slug}:${m.name}:2`, cache);
+  }
+  await renderCached(studiesIndexCard(), 'studies.png', 'studies-index:1', cache);
+  for (const st of STUDIES) {
+    await renderCached(studyCard(st), `studies/${st.slug}.png`, `study:${st.slug}:${st.title}:${st.verdict}:2`, cache);
   }
   saveCache(cache);
   const { spawnSync } = await import('node:child_process');
