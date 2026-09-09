@@ -15,6 +15,8 @@
       number and a sentence-cased title so the page can set them like the
       mockup's contents rows; other h2s are sentence-cased in place. */
 
+import { pairRatio } from './figures.js';
+
 const SPONSORED_HOSTS = ['ahrefs.com'];
 
 const isBlank = (n) => n.type === 'text' && !n.value.trim();
@@ -44,6 +46,10 @@ function withoutComments(node) {
   return node;
 }
 
+/* Pairs are collected here and get their shared aspect ratio (the wider
+   image's, read from the file) once the walk is done. */
+const pairs = [];
+
 function toFigure(p) {
   const imgs = p.children.filter((c) => !isBlank(c));
   const caption = imgs[0].properties?.title;
@@ -51,6 +57,7 @@ function toFigure(p) {
     img.properties = { ...img.properties, loading: 'lazy', decoding: 'async' };
     delete img.properties.title;
   }
+  if (imgs.length > 1) pairs.push(imgs);
   const children = imgs.length > 1 ? [el('div', { className: ['fig-pair'] }, imgs)] : imgs;
   if (caption) children.push(el('figcaption', {}, [text(String(caption))]));
   return el('figure', { className: ['study-fig', ...(imgs.length > 1 ? ['pair'] : [])] }, children);
@@ -107,5 +114,12 @@ function transform(node) {
 }
 
 export default function rehypeStudy() {
-  return (tree) => transform(tree);
+  return async (tree) => {
+    pairs.length = 0;
+    transform(tree);
+    for (const imgs of pairs) {
+      const ratio = await pairRatio(imgs.map((i) => i.properties?.src));
+      for (const img of imgs) img.properties.style = `aspect-ratio: ${ratio}`;
+    }
+  };
 }

@@ -2,7 +2,6 @@
 /* /studies: the index. Same layout family as /moats: .wrap, crumbs,
    lowercase h2, hairlines not containers. Gated by STUDIES_LIVE. */
 import Base from '../../layouts/Base.astro';
-import PaidLabel from '../../components/PaidLabel.astro';
 import { studiesLive } from '../../lib/flags.js';
 import { getEntry } from 'astro:content';
 import { studiesNewestFirst, studyDate, studyDescription, studyUrl } from '../../lib/studies.js';
@@ -73,7 +72,7 @@ const jsonld = [
             <span class="sc-title">{s.title}</span>
             <span class="sc-desc">{s.line}</span>
             <span class="sc-foot">
-              <PaidLabel study={s} short />
+              <span class="sc-chip">commissioned by {s.sponsor.name}</span>
               <span class="sc-more">read the study →</span>
             </span>
           </a>
@@ -140,6 +139,16 @@ const jsonld = [
     align-items: center;
     gap: 10px 16px;
     padding-top: 6px;
+  }
+
+  .sc-chip {
+    display: inline-block;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 5px 11px;
+    font: 11.5px/1.4 var(--font-mono);
+    color: var(--muted);
+    white-space: nowrap;
   }
 
   .sc-more {

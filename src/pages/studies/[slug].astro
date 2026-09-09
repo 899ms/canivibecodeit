@@ -8,11 +8,11 @@
    unknown slugs 404. */
 import { getEntry, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import PaidLabel from '../../components/PaidLabel.astro';
 import VerdictBadge from '../../components/VerdictBadge.astro';
 import { allApps, MOAT_TAG_DESCS, moatsInUse, VERDICTS } from '../../lib/apps.js';
 import { studiesLive } from '../../lib/flags.js';
-import { curly, sentenceCase, studyBySlug, studyDate, studyDescription, studyEyebrow, studyUrl } from '../../lib/studies.js';
+import { pairRatio } from '../../lib/figures.js';
+import { curly, sentenceCase, studyBySlug, studyDate, studyDescription, studyUrl } from '../../lib/studies.js';
 
 if (!studiesLive()) return new Response(null, { status: 404 });
 
@@ -76,6 +76,12 @@ function firstSentence(number) {
 }
 const contents = chapters.map((c, i) => ({ ...c, desc: fm.contents?.[i] ?? firstSentence(c.number) }));
 
+/* Figure-block pairs: one frame per pair, the wider image's ratio, read
+   from the files (lib/figures.js), so the halves fill with no empty space. */
+const ratioFor = async (f) => (f?.pair ? pairRatio([f.src, f.pair.src]) : null);
+const coverRatio = await ratioFor(fm.cover_figure);
+const rowRatios = await Promise.all((fm.row_figures ?? []).map(ratioFor));
+
 const verdictWord = VERDICTS[fm.verdict]?.label ?? 'NOT REALLY';
 const dateline = studyDate(study);
 // <title> keeps the spec's lowercase pattern; the page shows the mockup's casing.
@@ -125,18 +131,19 @@ const jsonld = [
 
     {/* cover: centred column, mockup rhythm 96 / 24 / 72 */}
     <header class="st-cover">
-      <div class="st-top-label">
-        <PaidLabel study={study} />
-        {study.sponsor.logo && (
-          <a class="st-sponsor-mark" href={study.sponsor.url} target="_blank" rel="sponsored noopener" aria-label={`${study.sponsor.name} (opens in a new tab)`}>
-            <img class="mark-dark" src={study.sponsor.logo} alt={study.sponsor.name} height="30" loading="eager" decoding="async" />
-            {study.sponsor.logoLight && (
-              <img class="mark-light" src={study.sponsor.logoLight} alt={study.sponsor.name} height="30" loading="eager" decoding="async" />
-            )}
+      {/* the disclosure lives here: study number, "commissioned by", and the
+          sponsor's mark inline where the name would be, linked rel=sponsored */}
+      <p class="st-eyebrow">
+        moat study no. {study.number} · commissioned by{' '}
+        {study.sponsor.logo ? (
+          <a class="st-eyebrow-mark" href={study.sponsor.url} target="_blank" rel="sponsored noopener" aria-label={study.sponsor.name}>
+            <img class="mark-dark" src={study.sponsor.logo} alt="" loading="eager" decoding="async" />
+            {study.sponsor.logoLight && <img class="mark-light" src={study.sponsor.logoLight} alt="" loading="eager" decoding="async" />}
           </a>
+        ) : (
+          <a href={study.sponsor.url} target="_blank" rel="sponsored noopener">{study.sponsor.name}</a>
         )}
-      </div>
-      <p class="st-eyebrow">{studyEyebrow(study)}</p>
+      </p>
       <h1>{study.title}</h1>
       <p class="st-standfirst">{curly(fm.standfirst)}</p>
       {dateline && <p class="st-dateline">published {dateline}{fm.updated ? ` · updated ${studyDate({ publishedAt: fm.updated })}` : ''}</p>}
@@ -198,7 +205,7 @@ const jsonld = [
         <section class="st-band st-figs" aria-label="Figures">
           {fm.cover_figure && (
             <figure class:list={['st-fig', 'st-fig-cover', { pair: !!fm.cover_figure.pair }]}>
-              <div class="st-fig-imgs">
+              <div class="st-fig-imgs" style={coverRatio ? `--ratio: ${coverRatio}` : undefined}>
                 <img src={fm.cover_figure.src} alt={fm.cover_figure.alt} loading="lazy" decoding="async" />
                 {fm.cover_figure.pair && <img src={fm.cover_figure.pair.src} alt={fm.cover_figure.pair.alt} loading="lazy" decoding="async" />}
               </div>
@@ -209,7 +216,7 @@ const jsonld = [
             <div class="st-fig-row">
               {fm.row_figures.map((f, i) => (
                 <figure class:list={['st-fig', { pair: !!f.pair }]}>
-                  <div class="st-fig-imgs">
+                  <div class="st-fig-imgs" style={rowRatios[i] ? `--ratio: ${rowRatios[i]}` : undefined}>
                     <img src={f.src} alt={f.alt} loading="lazy" decoding="async" />
                     {f.pair && <img src={f.pair.src} alt={f.pair.alt} loading="lazy" decoding="async" />}
                   </div>
@@ -274,12 +281,9 @@ const jsonld = [
     {/* footer line */}
     <footer class="st-band st-foot">
       <p class="st-foot-line">{curly(fm.footer_line)}</p>
-      <div class="st-foot-row">
-        <PaidLabel study={study} />
-        <a class="st-foot-link" href={study.sponsor.url} target="_blank" rel="sponsored noopener">
-          commissioned by {study.sponsor.name} ↗
-        </a>
-      </div>
+      <a class="st-foot-link" href={study.sponsor.url} target="_blank" rel="sponsored noopener">
+        commissioned by {study.sponsor.name} ↗
+      </a>
     </footer>
   </main>
 </Base>
@@ -307,38 +311,6 @@ const jsonld = [
     padding-bottom: 72px;
   }
 
-  /* the paid label with the sponsor mark once, next to it, never taller
-     than the site's own mark (30px) */
-  .st-top-label {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 12px 18px;
-  }
-
-  .st-sponsor-mark {
-    display: inline-flex;
-    align-items: center;
-  }
-
-  .st-sponsor-mark img {
-    display: block;
-    height: 30px;
-    max-height: 30px;
-    width: auto;
-  }
-
-  /* one mark per theme: the inverted (white) file on dark, the primary on light */
-  .st-sponsor-mark .mark-light,
-  :global([data-theme='light']) .st-sponsor-mark .mark-dark {
-    display: none;
-  }
-
-  :global([data-theme='light']) .st-sponsor-mark .mark-light {
-    display: block;
-  }
-
   .st-eyebrow {
     font: 500 14px/16px var(--font-mono);
     letter-spacing: 0.14em;
@@ -348,6 +320,30 @@ const jsonld = [
 
   .st-eyebrow.left {
     text-align: left;
+  }
+
+  /* the sponsor's mark inline in the eyebrow: sized to the line's cap
+     height, sitting on the baseline; one file per theme */
+  .st-eyebrow-mark {
+    display: inline-block;
+    vertical-align: baseline;
+    line-height: 0;
+  }
+
+  .st-eyebrow-mark img {
+    display: inline-block;
+    height: 0.75em; /* JetBrains Mono cap height */
+    width: auto;
+    vertical-align: baseline;
+  }
+
+  .st-eyebrow-mark .mark-light,
+  :global([data-theme='light']) .st-eyebrow-mark .mark-dark {
+    display: none;
+  }
+
+  :global([data-theme='light']) .st-eyebrow-mark .mark-light {
+    display: inline-block;
   }
 
   .st-cover h1 {
@@ -537,8 +533,8 @@ const jsonld = [
   }
 
   /* a slot with a pair shows both images side by side, stacked on phones;
-     each half sits in the same 8:5 frame, contained and bottom-aligned, so
-     two screenshots of different aspect end on one line */
+     both halves share one frame (the wider image's ratio), filled edge to
+     edge with the taller image cropped at the bottom, never letterboxed */
   .st-fig.pair .st-fig-imgs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -546,10 +542,10 @@ const jsonld = [
   }
 
   .st-fig.pair .st-fig-imgs img {
-    aspect-ratio: 8 / 5;
+    aspect-ratio: var(--ratio, 8 / 5);
     height: auto;
-    object-fit: contain;
-    object-position: center bottom;
+    object-fit: cover;
+    object-position: center top;
   }
 
   .st-fig img {
@@ -709,13 +705,6 @@ const jsonld = [
   .st-foot-line {
     font: 14px/24px var(--font-mono);
     color: var(--muted);
-  }
-
-  .st-foot-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 14px 22px;
   }
 
   .st-foot-link {

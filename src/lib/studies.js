@@ -60,12 +60,10 @@ export const studyBySlug = (slug) => STUDIES.find((s) => s.slug === slug) ?? nul
 export const studiesNewestFirst = () => [...STUDIES].sort((a, b) => b.number - a.number);
 export const featuredStudy = () => studiesNewestFirst()[0] ?? null;
 
-export const studyEyebrow = (s) => `moat study no. ${s.number} · commissioned by ${s.sponsor.name}`;
 
-/* The paid-partnership label, exact wording. Long form twice on the study
-   page, short form on the index card. No colour: colour means verdict. */
-export const paidLabel = (s) =>
-  `paid partnership. ${s.sponsor.name} commissioned this study and got a fact-check pass. The verdicts and every word are ours.`;
+/* The OG card's bottom line. On the page itself the disclosure is the cover
+   eyebrow ("moat study no. N · commissioned by <mark>") and the footer's
+   plain "commissioned by" link; no separate label element. */
 export const paidLabelShort = (s) => `paid partnership · commissioned by ${s.sponsor.name}`;
 
 export const studyUrl = (s) => `https://canivibecodeit.com/studies/${s.slug}`;
