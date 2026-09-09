@@ -169,11 +169,13 @@ const jsonld = [
       </div>
     </dl>
 
-    {/* the verdict, centred like the cover */}
+    {/* the verdict badge, centred like the cover; verdict_text and opener
+        render only when the article gives them (operator: the badge sits
+        alone above the chart for study no. 1) */}
     <section class="st-verdict" aria-label="Verdict">
       <VerdictBadge verdict={fm.verdict} big />
-      <p class="st-verdict-text">{curly(fm.verdict_text)}</p>
-      {fm.opener && <p class="st-opener">{curly(fm.opener)}</p>}
+      {fm.verdict_text?.trim() && <p class="st-verdict-text">{curly(fm.verdict_text)}</p>}
+      {fm.opener?.trim() && <p class="st-opener">{curly(fm.opener)}</p>}
     </section>
 
     {/* which moats actually held: live numbers */}

@@ -82,10 +82,12 @@ export function studyDate(s) {
 export const sentenceCase = (s) => String(s).replace(/^\s*([a-z])/, (m) => m.toUpperCase());
 
 /* Meta description and index-card line, derived from the article's
-   standfirst: whole sentences while the total stays under 155 characters,
-   at least the first sentence (cut at a word boundary if it alone is too
-   long). Never a registry string, so the frozen article fixes it. */
-export function studyDescription(standfirst, max = 155) {
+   standfirst: whole sentences while the total stays within 170 characters
+   (the frozen standfirst's first two sentences run to 166; search results
+   may clip the tail), at least the first sentence (cut at a word boundary
+   if it alone is too long). Never a registry string, so the frozen article
+   fixes it. */
+export function studyDescription(standfirst, max = 170) {
   const sentences = String(standfirst ?? '').trim().match(/[^.!?]+[.!?]+(\s|$)/g) ?? [String(standfirst ?? '').trim()];
   let out = '';
   for (const sentence of sentences) {
