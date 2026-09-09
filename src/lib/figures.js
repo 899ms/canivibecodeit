@@ -1,10 +1,10 @@
 /* Figure geometry and sources.
 
-   Pairs: two screenshots side by side (stacked on phones) at ONE shared
-   height with no empty space: both halves get the aspect ratio of the WIDER
-   image, and the taller image is cropped at the bottom (object-fit: cover,
-   anchored top). The ratio is read from the files under public/ once and
-   cached; unknown files fall back to 8:5.
+   Pairs: two screenshots side by side (stacked on phones), each at its own
+   natural aspect ratio, scaled to equal width and top-aligned; heights may
+   differ and nothing is cropped or boxed. The only geometry read from the
+   files (once, cached) decides whether a pair of very wide strips should
+   stack full width instead (stackPair).
 
    Zoom: every figure links to its full-size file. Figures are dropped at
    1280 wide as <name>.webp; when the source was wider, a 2x variant sits
@@ -13,7 +13,6 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
-const FALLBACK = 8 / 5;
 const cache = new Map();
 
 const publicPath = (src) => path.resolve('public', src.replace(/^\//, ''));
@@ -32,12 +31,16 @@ async function ratioOf(src) {
   return ratio;
 }
 
-/* CSS aspect-ratio value for a pair: the widest of the given sources. */
-export async function pairRatio(srcs) {
-  const ratios = (await Promise.all(srcs.map(ratioOf))).filter((r) => r && Number.isFinite(r));
-  const r = ratios.length ? Math.max(...ratios) : FALLBACK;
-  return `${Math.round(r * 1000)} / 1000`;
+/* Natural width/height ratio per source (null when unknown). */
+export async function imageRatios(srcs) {
+  return Promise.all(srcs.map(ratioOf));
 }
+
+/* A pair of very wide strips (both at least 2.5:1, e.g. the Brand Radar
+   header rows) is unreadable at half width, so it stacks full width instead
+   of sitting side by side. */
+export const WIDE = 2.5;
+export const stackPair = (ratios) => ratios.length > 0 && ratios.every((r) => r && r >= WIDE);
 
 /* The full-size source for a figure: the @2x file when it exists, else the
    figure itself. Only site-relative paths are considered. */

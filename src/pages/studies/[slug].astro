@@ -11,7 +11,7 @@ import Base from '../../layouts/Base.astro';
 import VerdictBadge from '../../components/VerdictBadge.astro';
 import { allApps, MOAT_TAG_DESCS, moatsInUse, VERDICTS } from '../../lib/apps.js';
 import { studiesLive } from '../../lib/flags.js';
-import { pairRatio, zoomSrc } from '../../lib/figures.js';
+import { imageRatios, stackPair, zoomSrc } from '../../lib/figures.js';
 import { curly, sentenceCase, studyBySlug, studyDate, studyDescription, studyUrl } from '../../lib/studies.js';
 
 if (!studiesLive()) return new Response(null, { status: 404 });
@@ -76,11 +76,16 @@ function firstSentence(number) {
 }
 const contents = chapters.map((c, i) => ({ ...c, desc: fm.contents?.[i] ?? firstSentence(c.number) }));
 
-/* Figure-block pairs: one frame per pair, the wider image's ratio, read
-   from the files (lib/figures.js), so the halves fill with no empty space. */
-const ratioFor = async (f) => (f?.pair ? pairRatio([f.src, f.pair.src]) : null);
-const coverRatio = await ratioFor(fm.cover_figure);
-const rowRatios = await Promise.all((fm.row_figures ?? []).map(ratioFor));
+/* Figure-block pairs: each half keeps its own aspect ratio at equal width,
+   top-aligned; a pair of very wide strips stacks instead (lib/figures.js).
+   In the row, a pair takes the full row; singles share it when there are
+   two of them, otherwise a lone single spans it. */
+const stackFor = async (f) => (f?.pair ? stackPair(await imageRatios([f.src, f.pair.src])) : false);
+const coverStack = await stackFor(fm.cover_figure);
+const rows = fm.row_figures ?? [];
+const rowStacks = await Promise.all(rows.map(stackFor));
+const singles = rows.filter((f) => !f.pair).length;
+const rowSpan = (f) => (f.pair || singles < 2 ? 'full' : 'half');
 
 const verdictWord = VERDICTS[fm.verdict]?.label ?? 'NOT REALLY';
 const dateline = studyDate(study);
@@ -207,7 +212,7 @@ const jsonld = [
         <section class="st-band st-figs" aria-label="Figures">
           {fm.cover_figure && (
             <figure class:list={['st-fig', 'st-fig-cover', { pair: !!fm.cover_figure.pair }]}>
-              <div class="st-fig-imgs" style={coverRatio ? `--ratio: ${coverRatio}` : undefined}>
+              <div class:list={['st-fig-imgs', { stack: coverStack }]}>
                 <a class="fig-zoom" href={zoomSrc(fm.cover_figure.src)} target="_blank" rel="noopener" data-zoom data-caption={fm.cover_figure.caption}>
                   <img src={fm.cover_figure.src} alt={fm.cover_figure.alt} loading="lazy" decoding="async" />
                 </a>
@@ -222,9 +227,9 @@ const jsonld = [
           )}
           {fm.row_figures?.length > 0 && (
             <div class="st-fig-row">
-              {fm.row_figures.map((f, i) => (
-                <figure class:list={['st-fig', { pair: !!f.pair }]}>
-                  <div class="st-fig-imgs" style={rowRatios[i] ? `--ratio: ${rowRatios[i]}` : undefined}>
+              {rows.map((f, i) => (
+                <figure class:list={['st-fig', rowSpan(f), { pair: !!f.pair }]}>
+                  <div class:list={['st-fig-imgs', { stack: rowStacks[i] }]}>
                     <a class="fig-zoom" href={zoomSrc(f.src)} target="_blank" rel="noopener" data-zoom data-caption={f.caption}>
                       <img src={f.src} alt={f.alt} loading="lazy" decoding="async" />
                     </a>
@@ -560,13 +565,18 @@ const jsonld = [
     padding-bottom: 40px;
   }
 
-  /* a slot with a pair shows both images side by side, stacked on phones;
-     both halves share one frame (the wider image's ratio), filled edge to
-     edge with the taller image cropped at the bottom, never letterboxed */
+  /* a slot with a pair shows both images side by side at equal width, each
+     at its own aspect ratio, top-aligned; nothing is cropped or boxed.
+     Very wide strips (.stack) sit one above the other at full width. */
   .st-fig.pair .st-fig-imgs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+    align-items: start;
+  }
+
+  .st-fig.pair .st-fig-imgs.stack {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .st-fig .fig-zoom {
@@ -575,19 +585,11 @@ const jsonld = [
     cursor: zoom-in;
   }
 
-  .st-fig.pair .st-fig-imgs img {
-    aspect-ratio: var(--ratio, 8 / 5);
-    height: auto;
-    object-fit: cover;
-    object-position: center top;
-  }
-
   .st-fig img {
     display: block;
     width: 100%;
     height: auto;
     border: 1px solid var(--border);
-    background: var(--surface);
   }
 
   .st-fig figcaption {
@@ -601,6 +603,12 @@ const jsonld = [
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
     margin-top: 14px;
+    align-items: start;
+  }
+
+  /* a pair owns its row; a single shares a row only with another single */
+  .st-fig-row .st-fig.full {
+    grid-column: 1 / -1;
   }
 
   /* ---------- the three cards ---------- */

@@ -5,8 +5,9 @@
       `raw` nodes markdown produces for inline HTML).
    2. A paragraph that holds only images becomes a <figure>: images get
       lazy loading, the first image's title becomes the <figcaption>, and
-      two images in one paragraph make a side-by-side pair (stacked on
-      phones by CSS).
+      two images in one paragraph make a side-by-side pair, each at its own
+      aspect ratio, top-aligned (stacked on phones, or everywhere when both
+      halves are very wide strips).
    3. Every <table> is wrapped in <div class="table-wrap"> so wide tables
       scroll sideways instead of breaking the page on phones.
    4. Links to the sponsor's domains get rel="sponsored noopener" and open in
@@ -20,7 +21,7 @@
    7. A paragraph reading `[chart: <id>]` becomes the SVG bar chart declared
       under `charts` in the frontmatter (lib/study-chart.mjs). */
 
-import { pairRatio, zoomSrc } from './figures.js';
+import { imageRatios, stackPair, zoomSrc } from './figures.js';
 import { chartFigureHtml } from './study-chart.mjs';
 
 const SPONSORED_HOSTS = ['ahrefs.com'];
@@ -52,8 +53,8 @@ function withoutComments(node) {
   return node;
 }
 
-/* Pairs are collected here and get their shared aspect ratio (the wider
-   image's, read from the file) once the walk is done. */
+/* Pairs are collected here; once the walk is done the very wide ones (both
+   halves at least 2.5:1) get the `stack` class and sit full width. */
 const pairs = [];
 
 function zoomLink(img, caption) {
@@ -78,9 +79,10 @@ function toFigure(p) {
     img.properties = { ...img.properties, loading: 'lazy', decoding: 'async' };
     delete img.properties.title;
   }
-  if (imgs.length > 1) pairs.push(imgs);
   const links = imgs.map((img) => zoomLink(img, caption ? String(caption) : ''));
-  const children = imgs.length > 1 ? [el('div', { className: ['fig-pair'] }, links)] : links;
+  const pairEl = imgs.length > 1 ? el('div', { className: ['fig-pair'] }, links) : null;
+  if (pairEl) pairs.push({ imgs, pairEl });
+  const children = pairEl ? [pairEl] : links;
   if (caption) children.push(el('figcaption', {}, [text(String(caption))]));
   return el('figure', { className: ['study-fig', ...(imgs.length > 1 ? ['pair'] : [])] }, children);
 }
@@ -155,9 +157,9 @@ export default function rehypeStudy() {
     // Astro exposes the entry's frontmatter on the vfile.
     const charts = file?.data?.astro?.frontmatter?.charts;
     transform(tree, charts);
-    for (const imgs of pairs) {
-      const ratio = await pairRatio(imgs.map((i) => i.properties?.src));
-      for (const img of imgs) img.properties.style = `aspect-ratio: ${ratio}`;
+    for (const { imgs, pairEl } of pairs) {
+      const ratios = await imageRatios(imgs.map((i) => i.properties?.src));
+      if (stackPair(ratios)) pairEl.properties.className.push('stack');
     }
   };
 }
