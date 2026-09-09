@@ -1,0 +1,11 @@
+---
+/* A data figure on a study page: the same SVG bar chart the markdown body
+   gets from a `[chart: <id>]` line, for use in page templates. Props are the
+   chart spec (lib/study-chart.mjs). */
+import { chartFigureHtml } from '../lib/study-chart.mjs';
+
+const spec = Astro.props;
+const html = chartFigureHtml(spec);
+---
+
+{html && <Fragment set:html={html} />}

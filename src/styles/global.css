@@ -5669,3 +5669,167 @@ html.ruben-src [data-hide-for-ruben] {
   line-height: 1.7;
   color: var(--muted);
 }
+
+/* ---------- studies: click-to-enlarge ---------- */
+
+.study-fig .fig-zoom {
+  display: block;
+  min-width: 0;
+  cursor: zoom-in;
+}
+
+dialog.study-lightbox {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #e8e6e0;
+}
+
+dialog.study-lightbox::backdrop {
+  background: rgba(4, 6, 4, 0.88);
+}
+
+dialog.study-lightbox .lb-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  padding: 56px 20px 28px;
+  pointer-events: none;
+}
+
+dialog.study-lightbox img {
+  display: block;
+  max-width: min(96vw, 1800px);
+  max-height: calc(100vh - 140px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid #2a302a;
+  background: #0b0d0b;
+  pointer-events: auto;
+}
+
+dialog.study-lightbox figcaption {
+  max-width: 76ch;
+  font: 12.5px/1.6 var(--font-mono);
+  color: #b7bdb7;
+  text-align: center;
+  pointer-events: auto;
+}
+
+dialog.study-lightbox figcaption[hidden] {
+  display: none;
+}
+
+dialog.study-lightbox .lb-close {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #3a423a;
+  border-radius: 999px;
+  background: rgba(11, 13, 11, 0.8);
+  color: #e8e6e0;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+dialog.study-lightbox .lb-close:hover {
+  border-color: #e8e6e0;
+}
+
+/* ---------- studies: data figures (lib/study-chart.mjs) ---------- */
+
+.study-chart {
+  margin: 30px 0;
+}
+
+.study-chart-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  padding-bottom: 14px;
+}
+
+.study-chart .st-chart-svg {
+  display: block;
+  width: 100%;
+  /* an SVG scales its type with its width; below ~640px the labels would
+     shrink past legibility, so the chart scrolls sideways instead, with the
+     same edge fade the tables use */
+  min-width: 640px;
+  height: auto;
+  font: 13px var(--font-mono);
+}
+
+.study-chart .study-chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 700px) {
+  .study-chart .study-chart-scroll {
+    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 0.35) 0, #000 44px);
+    mask-image: linear-gradient(to left, rgba(0, 0, 0, 0.35) 0, #000 44px);
+  }
+}
+
+.study-chart .label {
+  fill: var(--muted);
+}
+
+.study-chart .label .meta {
+  fill: var(--muted);
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.study-chart .track {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.study-chart .bar {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.study-chart .value {
+  fill: var(--muted);
+}
+
+.study-chart .row.accent .label,
+.study-chart .row.accent .value {
+  fill: var(--fg);
+  font-weight: 700;
+}
+
+.study-chart .row.accent .bar {
+  fill: var(--primary);
+  stroke: var(--primary);
+}
+
+.study-chart .row.accent .value {
+  fill: var(--primary);
+}
+
+.study-chart-note {
+  padding-top: 10px;
+  font: 12px/1.6 var(--font-mono);
+  color: var(--muted);
+}

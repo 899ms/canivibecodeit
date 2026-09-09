@@ -56,6 +56,12 @@ footer_line: "Footer line placeholder: the closing paragraph of the article, ver
     text.
   - HTML comments are stripped from the built page, but strip them from the
     final file anyway.
+  - every figure is click-to-enlarge; drop figures at 1280 wide as
+    <name>.webp and, when the source is wider, a 2x copy as <name>@2x.webp
+    next to it: the overlay uses the 2x file automatically.
+  - data figures: declare `charts:` in the frontmatter (id, title, note,
+    unit, rows: label / value / meta / accent) and place one in the body
+    with a line reading [chart: <id>].
   - tables: normal markdown tables; they scroll sideways on phones.
   - no em dashes anywhere, including alt text and captions.
 -->

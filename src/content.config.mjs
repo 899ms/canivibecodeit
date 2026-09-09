@@ -44,6 +44,23 @@ const studies = defineCollection({
           .max(3),
       })
       .optional(),
+    // Data figures: SVG bar charts placed in the body with a `[chart: <id>]`
+    // line (lib/study-chart.mjs). value is a number; unit is printed after
+    // it; meta is a small secondary figure after the label.
+    charts: z
+      .array(
+        z.object({
+          id: z.string().regex(/^[a-z0-9-]+$/),
+          title: z.string().optional(),
+          note: z.string().optional(),
+          unit: z.string().optional(),
+          max: z.number().optional(),
+          rows: z
+            .array(z.object({ label: z.string(), value: z.number(), meta: z.string().optional(), accent: z.boolean().optional() }))
+            .min(1),
+        })
+      )
+      .optional(),
     // The closing paragraph, rendered verbatim in the footer line.
     footer_line: z.string(),
     // One-line descriptions for the contents list, in chapter order (01..).
