@@ -18,7 +18,8 @@ const studies = await Promise.all(
   })
 );
 
-const title = 'Studies · long answers to one question · Can I Vibecode It?';
+// <title> follows the site's lowercase pattern; the visible heading is sentence case.
+const title = 'studies · long answers to one question · Can I Vibecode It?';
 const description =
   'Commissioned deep dives: one paid app, one AI coding agent, a full clone attempt, and exactly where the moat holds. Paid partnerships, verdicts ours.';
 
@@ -52,7 +53,7 @@ const jsonld = [
     </nav>
 
     <div class="list-head" style="padding-top: 20px;">
-      <h2>studies</h2>
+      <h2>Studies</h2>
       <span class="note">{studies.length} {studies.length === 1 ? 'study' : 'studies'}</span>
     </div>
 

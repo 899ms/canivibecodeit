@@ -101,3 +101,15 @@ export function studyDescription(standfirst, max = 155) {
   }
   return out;
 }
+
+/* Typographic quotes for frontmatter strings the page renders as text (the
+   markdown body already gets them from the processor). An opening quote
+   follows a start, whitespace or an opening bracket; everything else closes.
+   Apostrophes become the closing single quote. */
+export function curly(s) {
+  return String(s ?? '')
+    .replace(/(^|[\s([{])"/g, '$1\u201c')
+    .replace(/"/g, '\u201d')
+    .replace(/(^|[\s([{])'/g, '$1\u2018')
+    .replace(/'/g, '\u2019');
+}

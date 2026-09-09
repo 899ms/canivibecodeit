@@ -12,7 +12,7 @@ import PaidLabel from '../../components/PaidLabel.astro';
 import VerdictBadge from '../../components/VerdictBadge.astro';
 import { allApps, MOAT_TAG_DESCS, moatsInUse, VERDICTS } from '../../lib/apps.js';
 import { studiesLive } from '../../lib/flags.js';
-import { sentenceCase, studyBySlug, studyDate, studyDescription, studyEyebrow, studyUrl } from '../../lib/studies.js';
+import { curly, sentenceCase, studyBySlug, studyDate, studyDescription, studyEyebrow, studyUrl } from '../../lib/studies.js';
 
 if (!studiesLive()) return new Response(null, { status: 404 });
 
@@ -138,7 +138,7 @@ const jsonld = [
       </div>
       <p class="st-eyebrow">{studyEyebrow(study)}</p>
       <h1>{study.title}</h1>
-      <p class="st-standfirst">{fm.standfirst}</p>
+      <p class="st-standfirst">{curly(fm.standfirst)}</p>
       {dateline && <p class="st-dateline">published {dateline}{fm.updated ? ` · updated ${studyDate({ publishedAt: fm.updated })}` : ''}</p>}
     </header>
 
@@ -165,8 +165,8 @@ const jsonld = [
     {/* the verdict, centred like the cover */}
     <section class="st-verdict" aria-label="Verdict">
       <VerdictBadge verdict={fm.verdict} big />
-      <p class="st-verdict-text">{fm.verdict_text}</p>
-      {fm.opener && <p class="st-opener">{fm.opener}</p>}
+      <p class="st-verdict-text">{curly(fm.verdict_text)}</p>
+      {fm.opener && <p class="st-opener">{curly(fm.opener)}</p>}
     </section>
 
     {/* which moats actually held: live numbers */}
@@ -202,7 +202,7 @@ const jsonld = [
                 <img src={fm.cover_figure.src} alt={fm.cover_figure.alt} loading="lazy" decoding="async" />
                 {fm.cover_figure.pair && <img src={fm.cover_figure.pair.src} alt={fm.cover_figure.pair.alt} loading="lazy" decoding="async" />}
               </div>
-              {fm.cover_figure.caption && <figcaption>{figNo(1)} · {fm.cover_figure.caption}</figcaption>}
+              {fm.cover_figure.caption && <figcaption>{figNo(1)} · {curly(fm.cover_figure.caption)}</figcaption>}
             </figure>
           )}
           {fm.row_figures?.length > 0 && (
@@ -213,7 +213,7 @@ const jsonld = [
                     <img src={f.src} alt={f.alt} loading="lazy" decoding="async" />
                     {f.pair && <img src={f.pair.src} alt={f.pair.alt} loading="lazy" decoding="async" />}
                   </div>
-                  {f.caption && <figcaption>{figNo(i + (fm.cover_figure ? 2 : 1))} · {f.caption}</figcaption>}
+                  {f.caption && <figcaption>{figNo(i + (fm.cover_figure ? 2 : 1))} · {curly(f.caption)}</figcaption>}
                 </figure>
               ))}
             </div>
@@ -228,15 +228,15 @@ const jsonld = [
         <section class="st-band st-cards" aria-labelledby="cards-head">
           <div class="st-cards-intro">
             {fm.cards.eyebrow && <p class="st-eyebrow left">{fm.cards.eyebrow}</p>}
-            <h2 id="cards-head">{fm.cards.title}</h2>
-            {fm.cards.intro && <p>{fm.cards.intro}</p>}
+            <h2 id="cards-head">{curly(fm.cards.title)}</h2>
+            {fm.cards.intro && <p>{curly(fm.cards.intro)}</p>}
           </div>
           <div class="st-card-row">
             {fm.cards.items.map((c) => (
               <article class:list={['st-card', { accent: c.accent }]}>
-                <p class="st-card-label">{c.label}</p>
-                <h3>{c.title}</h3>
-                <p class="st-card-body">{c.body}</p>
+                <p class="st-card-label">{curly(c.label)}</p>
+                <h3>{curly(c.title)}</h3>
+                <p class="st-card-body">{curly(c.body)}</p>
               </article>
             ))}
           </div>
@@ -255,7 +255,7 @@ const jsonld = [
                 <a href={`#${c.slug}`}>
                   <span class="st-c-num">{String(c.number).padStart(2, '0')}</span>
                   <span class="st-c-title">{c.label}</span>
-                  <span class="st-c-desc">{c.desc}</span>
+                  <span class="st-c-desc">{curly(c.desc)}</span>
                 </a>
               </li>
             ))}
@@ -273,7 +273,7 @@ const jsonld = [
 
     {/* footer line */}
     <footer class="st-band st-foot">
-      <p class="st-foot-line">{fm.footer_line}</p>
+      <p class="st-foot-line">{curly(fm.footer_line)}</p>
       <div class="st-foot-row">
         <PaidLabel study={study} />
         <a class="st-foot-link" href={study.sponsor.url} target="_blank" rel="sponsored noopener">
@@ -536,11 +536,20 @@ const jsonld = [
     padding-bottom: 40px;
   }
 
-  /* a slot with a pair shows both images side by side, stacked on phones */
+  /* a slot with a pair shows both images side by side, stacked on phones;
+     each half sits in the same 8:5 frame, contained and bottom-aligned, so
+     two screenshots of different aspect end on one line */
   .st-fig.pair .st-fig-imgs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+  }
+
+  .st-fig.pair .st-fig-imgs img {
+    aspect-ratio: 8 / 5;
+    height: auto;
+    object-fit: contain;
+    object-position: center bottom;
   }
 
   .st-fig img {
@@ -693,7 +702,7 @@ const jsonld = [
     align-items: flex-start;
     gap: 22px;
     padding-top: 56px;
-    padding-bottom: 72px;
+    padding-bottom: 0;
     max-width: 760px;
   }
 
