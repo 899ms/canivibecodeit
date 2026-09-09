@@ -1,14 +1,17 @@
 /* rehype transforms for study markdown (registered in astro.config.mjs).
-   Four jobs, no dependencies:
-   1. A paragraph that holds only images becomes a <figure>: images get
+   Five jobs, no dependencies:
+   1. HTML comments never reach the built page: editorial notes in the
+      article stay in the source file only (both `comment` nodes and the
+      `raw` nodes markdown produces for inline HTML).
+   2. A paragraph that holds only images becomes a <figure>: images get
       lazy loading, the first image's title becomes the <figcaption>, and
       two images in one paragraph make a side-by-side pair (stacked on
       phones by CSS).
-   2. Every <table> is wrapped in <div class="table-wrap"> so wide tables
+   3. Every <table> is wrapped in <div class="table-wrap"> so wide tables
       scroll sideways instead of breaking the page on phones.
-   3. Links to the sponsor's domains get rel="sponsored noopener" and open in
+   4. Links to the sponsor's domains get rel="sponsored noopener" and open in
       a new tab. Everything else keeps the site's normal outbound policy.
-   4. Chapter headings ("## 3. where the moat isn't") are split into a
+   5. Chapter headings ("## 3. where the moat isn't") are split into a
       number and a sentence-cased title so the page can set them like the
       mockup's contents rows; other h2s are sentence-cased in place. */
 
@@ -27,6 +30,18 @@ function sponsoredHost(href) {
   } catch {
     return false;
   }
+}
+
+/* Drop comment nodes; strip comment markup out of raw HTML nodes and drop
+   the node when nothing but whitespace is left. Returns null to remove. */
+function withoutComments(node) {
+  if (node.type === 'comment') return null;
+  if (node.type === 'raw' && node.value.includes('<!--')) {
+    const rest = node.value.replace(/<!--[\s\S]*?-->/g, '');
+    if (!rest.trim()) return null;
+    return { ...node, value: rest };
+  }
+  return node;
 }
 
 function toFigure(p) {
@@ -64,11 +79,17 @@ function chapterHeading(h2) {
 
 function transform(node) {
   if (!node.children) return;
+  node.children = node.children.map(withoutComments).filter(Boolean);
+  // A paragraph that held only a comment is now empty: drop it too.
+  node.children = node.children.filter(
+    (c) => !(c.type === 'element' && c.tagName === 'p' && c.children.every((k) => isBlank(k) || withoutComments(k) === null))
+  );
   node.children = node.children.map((child) => {
     if (child.type !== 'element') return child;
     if (child.tagName === 'p') {
-      const kids = child.children.filter((c) => !isBlank(c));
+      const kids = child.children.map(withoutComments).filter(Boolean).filter((c) => !isBlank(c));
       if (kids.length > 0 && kids.every((c) => c.type === 'element' && c.tagName === 'img')) {
+        child.children = kids;
         return toFigure(child);
       }
     }

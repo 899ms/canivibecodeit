@@ -12,7 +12,7 @@ import PaidLabel from '../../components/PaidLabel.astro';
 import VerdictBadge from '../../components/VerdictBadge.astro';
 import { allApps, MOAT_TAG_DESCS, moatsInUse, VERDICTS } from '../../lib/apps.js';
 import { studiesLive } from '../../lib/flags.js';
-import { sentenceCase, studyBySlug, studyDate, studyEyebrow, studyUrl } from '../../lib/studies.js';
+import { sentenceCase, studyBySlug, studyDate, studyDescription, studyEyebrow, studyUrl } from '../../lib/studies.js';
 
 if (!studiesLive()) return new Response(null, { status: 404 });
 
@@ -80,7 +80,8 @@ const verdictWord = VERDICTS[fm.verdict]?.label ?? 'NOT REALLY';
 const dateline = studyDate(study);
 // <title> keeps the spec's lowercase pattern; the page shows the mockup's casing.
 const title = `${study.title.toLowerCase()} · moat study no. ${study.number} · Can I Vibecode It?`;
-const description = study.description;
+// Derived from the article's own standfirst, never a registry string.
+const description = studyDescription(fm.standfirst);
 const url = studyUrl(study);
 const figNo = (i) => `FIG ${String(i).padStart(2, '0')}`;
 
@@ -124,7 +125,17 @@ const jsonld = [
 
     {/* cover: centred column, mockup rhythm 96 / 24 / 72 */}
     <header class="st-cover">
-      <PaidLabel study={study} />
+      <div class="st-top-label">
+        <PaidLabel study={study} />
+        {study.sponsor.logo && (
+          <a class="st-sponsor-mark" href={study.sponsor.url} target="_blank" rel="sponsored noopener" aria-label={`${study.sponsor.name} (opens in a new tab)`}>
+            <img class="mark-dark" src={study.sponsor.logo} alt={study.sponsor.name} height="30" loading="eager" decoding="async" />
+            {study.sponsor.logoLight && (
+              <img class="mark-light" src={study.sponsor.logoLight} alt={study.sponsor.name} height="30" loading="eager" decoding="async" />
+            )}
+          </a>
+        )}
+      </div>
       <p class="st-eyebrow">{studyEyebrow(study)}</p>
       <h1>{study.title}</h1>
       <p class="st-standfirst">{fm.standfirst}</p>
@@ -186,16 +197,22 @@ const jsonld = [
       (fm.cover_figure || fm.row_figures?.length) && (
         <section class="st-band st-figs" aria-label="Figures">
           {fm.cover_figure && (
-            <figure class="st-fig st-fig-cover">
-              <img src={fm.cover_figure.src} alt={fm.cover_figure.alt} loading="lazy" decoding="async" />
+            <figure class:list={['st-fig', 'st-fig-cover', { pair: !!fm.cover_figure.pair }]}>
+              <div class="st-fig-imgs">
+                <img src={fm.cover_figure.src} alt={fm.cover_figure.alt} loading="lazy" decoding="async" />
+                {fm.cover_figure.pair && <img src={fm.cover_figure.pair.src} alt={fm.cover_figure.pair.alt} loading="lazy" decoding="async" />}
+              </div>
               {fm.cover_figure.caption && <figcaption>{figNo(1)} · {fm.cover_figure.caption}</figcaption>}
             </figure>
           )}
           {fm.row_figures?.length > 0 && (
             <div class="st-fig-row">
               {fm.row_figures.map((f, i) => (
-                <figure class="st-fig">
-                  <img src={f.src} alt={f.alt} loading="lazy" decoding="async" />
+                <figure class:list={['st-fig', { pair: !!f.pair }]}>
+                  <div class="st-fig-imgs">
+                    <img src={f.src} alt={f.alt} loading="lazy" decoding="async" />
+                    {f.pair && <img src={f.pair.src} alt={f.pair.alt} loading="lazy" decoding="async" />}
+                  </div>
                   {f.caption && <figcaption>{figNo(i + (fm.cover_figure ? 2 : 1))} · {f.caption}</figcaption>}
                 </figure>
               ))}
@@ -256,24 +273,13 @@ const jsonld = [
 
     {/* footer line */}
     <footer class="st-band st-foot">
-      <div class="st-foot-left">
-        <p class="st-foot-line">{fm.footer_line}</p>
+      <p class="st-foot-line">{fm.footer_line}</p>
+      <div class="st-foot-row">
         <PaidLabel study={study} />
+        <a class="st-foot-link" href={study.sponsor.url} target="_blank" rel="sponsored noopener">
+          commissioned by {study.sponsor.name} ↗
+        </a>
       </div>
-      <a
-        class="st-partner"
-        href={study.sponsor.url}
-        target="_blank"
-        rel="sponsored noopener"
-        aria-label={`${study.sponsor.name} (opens in a new tab)`}
-      >
-        <span class="st-partner-pre">in partnership with</span>
-        {study.sponsor.logo ? (
-          <span class="st-partner-box"><img src={study.sponsor.logo} alt={study.sponsor.name} height="22" loading="lazy" /></span>
-        ) : (
-          <span class="st-partner-box">{study.sponsor.name}</span>
-        )}
-      </a>
     </footer>
   </main>
 </Base>
@@ -299,6 +305,38 @@ const jsonld = [
     gap: 24px;
     padding-top: 72px;
     padding-bottom: 72px;
+  }
+
+  /* the paid label with the sponsor mark once, next to it, never taller
+     than the site's own mark (30px) */
+  .st-top-label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px 18px;
+  }
+
+  .st-sponsor-mark {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .st-sponsor-mark img {
+    display: block;
+    height: 30px;
+    max-height: 30px;
+    width: auto;
+  }
+
+  /* one mark per theme: the inverted (white) file on dark, the primary on light */
+  .st-sponsor-mark .mark-light,
+  :global([data-theme='light']) .st-sponsor-mark .mark-dark {
+    display: none;
+  }
+
+  :global([data-theme='light']) .st-sponsor-mark .mark-light {
+    display: block;
   }
 
   .st-eyebrow {
@@ -498,6 +536,13 @@ const jsonld = [
     padding-bottom: 40px;
   }
 
+  /* a slot with a pair shows both images side by side, stacked on phones */
+  .st-fig.pair .st-fig-imgs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
   .st-fig img {
     display: block;
     width: 100%;
@@ -644,19 +689,12 @@ const jsonld = [
   /* ---------- footer line ---------- */
   .st-foot {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 40px;
-    padding-top: 56px;
-    padding-bottom: 72px;
-  }
-
-  .st-foot-left {
-    display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 18px;
-    max-width: 720px;
+    gap: 22px;
+    padding-top: 56px;
+    padding-bottom: 72px;
+    max-width: 760px;
   }
 
   .st-foot-line {
@@ -664,38 +702,17 @@ const jsonld = [
     color: var(--muted);
   }
 
-  .st-partner {
-    display: inline-flex;
+  .st-foot-row {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 14px;
-    flex-shrink: 0;
-    color: var(--fg);
-    text-decoration: none;
+    gap: 14px 22px;
   }
 
-  .st-partner-pre {
-    font: 12px/16px var(--font-mono);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .st-partner-box {
-    display: inline-flex;
-    align-items: center;
-    padding: 10px 18px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 18px;
-    line-height: 22px;
-  }
-
-  .st-partner-box img {
-    display: block;
-    height: 22px;
-    width: auto;
+  .st-foot-link {
+    font: 12.5px var(--font-mono);
+    color: var(--primary);
+    white-space: nowrap;
   }
 
   /* ---------- narrow viewports: one column, same order ---------- */
@@ -719,9 +736,8 @@ const jsonld = [
       grid-column: 2;
     }
 
-    .st-foot {
-      flex-direction: column;
-      align-items: flex-start;
+    .st-fig.pair .st-fig-imgs {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 

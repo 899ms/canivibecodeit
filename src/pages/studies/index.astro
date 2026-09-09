@@ -4,11 +4,19 @@
 import Base from '../../layouts/Base.astro';
 import PaidLabel from '../../components/PaidLabel.astro';
 import { studiesLive } from '../../lib/flags.js';
-import { studiesNewestFirst, studyDate, studyUrl } from '../../lib/studies.js';
+import { getEntry } from 'astro:content';
+import { studiesNewestFirst, studyDate, studyDescription, studyUrl } from '../../lib/studies.js';
 
 if (!studiesLive()) return new Response(null, { status: 404 });
 
-const studies = studiesNewestFirst();
+// The card line comes from each article's own standfirst (frontmatter),
+// derived the same way as the study page's meta description.
+const studies = await Promise.all(
+  studiesNewestFirst().map(async (s) => {
+    const entry = await getEntry('studies', s.slug);
+    return { ...s, line: entry ? studyDescription(entry.data.standfirst) : '' };
+  })
+);
 
 const title = 'Studies · long answers to one question · Can I Vibecode It?';
 const description =
@@ -62,7 +70,7 @@ const jsonld = [
               study no. {s.number} · {studyDate(s) ?? 'not yet published'}
             </span>
             <span class="sc-title">{s.title}</span>
-            <span class="sc-desc">{s.description}</span>
+            <span class="sc-desc">{s.line}</span>
             <span class="sc-foot">
               <PaidLabel study={s} short />
               <span class="sc-more">read the study →</span>

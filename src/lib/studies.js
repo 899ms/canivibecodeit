@@ -21,10 +21,19 @@ export const STUDIES = [
     // The death-list entry the study is about: its moat tags drive the
     // highlighted rows of the "which moats actually held" chart.
     subjectSlug: 'ahrefs',
-    // Under 155 chars; the social description and the index card line.
-    description:
-      'I gave an AI agent six hours to rebuild Ahrefs from public data. It built all three tools in 45 minutes. Here is where every one of them hit the wall.',
-    sponsor: { name: 'Ahrefs', url: 'https://ahrefs.com', logo: null },
+    // No description here: the meta description and the index card line are
+    // derived from the article's own standfirst at build time (studyDescription),
+    // so the frozen article fixes them without touching the registry.
+    // Logo: the official Ahrefs wordmark, reuse granted to the study;
+    // source noted in logoSource. Shown once, next to the top paid label,
+    // capped at 30px tall (the site's own mark is 30px).
+    sponsor: {
+      name: 'Ahrefs',
+      url: 'https://ahrefs.com',
+      logo: '/studies/ahrefs/ahrefs-logo.svg', // inverted (white) mark, dark theme
+      logoLight: '/studies/ahrefs/ahrefs-logo-light.svg', // primary mark, light theme
+      logoSource: 'https://ahrefs.com/logo (Primary logo: Ahrefs-Logo-Inverted-Transparent.svg and Ahrefs-Logo-Transparent-Trimmed.svg, unaltered)',
+    },
     verdict: 'no',
     cloneAttempts: 1,
     // ISO date, set on publish day (drives the index card, JSON-LD and the
@@ -73,3 +82,22 @@ export function studyDate(s) {
 
 // "the weekend clone test" -> "The weekend clone test" (mockup casing).
 export const sentenceCase = (s) => String(s).replace(/^\s*([a-z])/, (m) => m.toUpperCase());
+
+/* Meta description and index-card line, derived from the article's
+   standfirst: whole sentences while the total stays under 155 characters,
+   at least the first sentence (cut at a word boundary if it alone is too
+   long). Never a registry string, so the frozen article fixes it. */
+export function studyDescription(standfirst, max = 155) {
+  const sentences = String(standfirst ?? '').trim().match(/[^.!?]+[.!?]+(\s|$)/g) ?? [String(standfirst ?? '').trim()];
+  let out = '';
+  for (const sentence of sentences) {
+    const next = out ? `${out} ${sentence.trim()}` : sentence.trim();
+    if (next.length > max) break;
+    out = next;
+  }
+  if (!out) {
+    const first = sentences[0].trim();
+    out = first.length <= max ? first : first.slice(0, max - 1).replace(/\s+\S*$/, '').trim() + '.';
+  }
+  return out;
+}

@@ -44,9 +44,18 @@ footer_line: "Footer line placeholder: the closing paragraph of the article, ver
     order), updated (optional ISO date).
   - body: chapters as "## 1. title" through "## 7. title", then
     "## how this was scored". Chapter 0 lives in the frontmatter.
+  - cover_figure / row_figures entries take one image (src, alt) or a pair:
+    add `pair: { src, alt }` for the second image; the caption is shared.
+    Pairs sit side by side on wide screens and stack on phones.
   - figures inside chapters: an image on its own line, title = caption:
       ![alt text](/studies/ahrefs/fig4.webp "caption")
     two images on one line make a side-by-side pair.
+  - attachments (the clone report and log): drop sanitised .md or .txt files
+    under public/studies/ahrefs/ and link them as
+    /studies/can-you-vibecode-ahrefs/files/<name>; they are served as plain
+    text.
+  - HTML comments are stripped from the built page, but strip them from the
+    final file anyway.
   - tables: normal markdown tables; they scroll sideways on phones.
   - no em dashes anywhere, including alt text and captions.
 -->

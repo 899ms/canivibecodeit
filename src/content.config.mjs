@@ -6,17 +6,21 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
-const figure = z.object({
-  src: z.string(),
-  alt: z.string(),
+const image = z.object({ src: z.string(), alt: z.string() });
+
+/* A figure slot: one image, or a pair (the second image under `pair`, shown
+   side by side on wide screens and stacked on phones), plus one caption. */
+const figure = image.extend({
   caption: z.string().optional(),
+  pair: image.optional(),
 });
 
 const studies = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/studies' }),
   schema: z.object({
     title: z.string(),
-    // First paragraph of chapter 0: rendered under the h1 on the cover.
+    // First paragraph of chapter 0: the cover standfirst. The meta and card
+    // descriptions are derived from it at build time (lib/studies.js).
     standfirst: z.string(),
     verdict: z.enum(['yes', 'kinda', 'no']),
     // The two-sentence verdict, rendered in the verdict block.
@@ -27,7 +31,8 @@ const studies = defineCollection({
     cover_figure: figure.optional(),
     row_figures: z.array(figure).max(2).optional(),
     // The three cards (eyebrow, heading, intro, then label/title/body each;
-    // `accent: true` gives one card the primary border).
+    // `accent: true` gives one card the primary border). Only what is here
+    // renders; no cards in the file means no cards block on the page.
     cards: z
       .object({
         eyebrow: z.string().optional(),
