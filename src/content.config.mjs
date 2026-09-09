@@ -47,17 +47,34 @@ const studies = defineCollection({
     // Data figures: SVG bar charts placed in the body with a `[chart: <id>]`
     // line (lib/study-chart.mjs). value is a number; unit is printed after
     // it; meta is a small secondary figure after the label.
+    // `type: columns` draws columns on a shared y axis instead (prefix, max,
+    // step, columns with a bar and/or marks); `alt` overrides the aria text.
     charts: z
       .array(
         z.object({
           id: z.string().regex(/^[a-z0-9-]+$/),
+          type: z.enum(['bars', 'columns']).optional(),
           title: z.string().optional(),
           note: z.string().optional(),
+          alt: z.string().optional(),
           unit: z.string().optional(),
+          prefix: z.string().optional(),
           max: z.number().optional(),
+          step: z.number().optional(),
           rows: z
             .array(z.object({ label: z.string(), value: z.number(), meta: z.string().optional(), accent: z.boolean().optional() }))
-            .min(1),
+            .optional(),
+          columns: z
+            .array(
+              z.object({
+                label: z.string(),
+                bar: z.object({ value: z.number(), label: z.string().optional(), accent: z.boolean().optional() }).optional(),
+                marks: z
+                  .array(z.object({ value: z.number(), label: z.string().optional(), accent: z.boolean().optional(), above: z.boolean().optional() }))
+                  .optional(),
+              })
+            )
+            .optional(),
         })
       )
       .optional(),

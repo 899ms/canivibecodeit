@@ -5833,3 +5833,64 @@ dialog.study-lightbox .lb-close:hover {
   font: 12px/1.6 var(--font-mono);
   color: var(--muted);
 }
+
+/* column chart: filled marks and bars in verdict red (the spec's one
+   colour), outlines and axis in muted, labels on filled marks in fg */
+.study-chart .col-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.study-chart .col-base {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.study-chart .col-tick,
+.study-chart .col-name,
+.study-chart .col-label {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.study-chart .col-name {
+  fill: var(--fg);
+}
+
+.study-chart .col-bar {
+  fill: var(--surface-2);
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.study-chart .col-bar.accent {
+  fill: var(--no-bg);
+  stroke: var(--no-bg);
+}
+
+.study-chart .col-zero,
+.study-chart .col-mark {
+  stroke: var(--muted);
+  stroke-width: 2;
+}
+
+.study-chart .col-mark.accent {
+  stroke: var(--no-bg);
+  stroke-width: 5;
+}
+
+.study-chart .col-marker {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+
+.study-chart .col-label.accent {
+  fill: var(--fg);
+  font-weight: 700;
+}
+
+.study-chart .col-label.inside {
+  fill: var(--no-fg);
+}
