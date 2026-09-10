@@ -19,10 +19,14 @@
       @2x variant when one exists), which the page's lightbox script turns
       into an overlay; without JS it is just the image.
    7. A paragraph reading `[chart: <id>]` becomes the SVG bar chart declared
-      under `charts` in the frontmatter (lib/study-chart.mjs). */
+      under `charts` in the frontmatter (lib/study-chart.mjs).
+   8. A paragraph reading `[pull: <sentence>]` becomes a pull line: the
+      sentence set large between two hairlines; `[pull: <sentence> | <eyebrow>]`
+      adds a small mono eyebrow above it. */
 
 import { imageRatios, stackPair, zoomSrc } from './figures.js';
 import { chartFigureHtml } from './study-chart.mjs';
+import { curly } from './studies.js';
 
 const SPONSORED_HOSTS = ['ahrefs.com'];
 
@@ -99,6 +103,22 @@ function chartFor(p, charts) {
   return html ? { type: 'raw', value: html } : { type: 'text', value: '' };
 }
 
+/* `[pull: sentence]` or `[pull: sentence | eyebrow]` on its own line -> a
+   pull line (one sentence set large, hairlines above and below). */
+const PULL_RE = /^\[pull:\s*([\s\S]+?)\s*\]$/i;
+function pullFor(p) {
+  const kids = p.children.filter((c) => !isBlank(c));
+  if (kids.length !== 1 || kids[0].type !== 'text') return null;
+  const m = kids[0].value.trim().match(PULL_RE);
+  if (!m) return null;
+  const [sentence, eyebrow] = m[1].split('|').map((t) => t.trim());
+  if (!sentence) return null;
+  const children = [];
+  if (eyebrow) children.push(el('p', { className: ['pull-eyebrow'] }, [text(curly(eyebrow))]));
+  children.push(el('p', { className: ['pull-line'] }, [text(curly(sentence))]));
+  return el('aside', { className: ['study-pull'] }, children);
+}
+
 /* Only plain-text headings are restructured; anything with inline markup
    is left alone (the casing rule still applies to its first text node). */
 function chapterHeading(h2) {
@@ -137,6 +157,8 @@ function transform(node, charts) {
       }
       const chart = chartFor(child, charts);
       if (chart) return chart;
+      const pull = pullFor(child);
+      if (pull) return pull;
     }
     if (child.tagName === 'table') {
       transform(child, charts);
