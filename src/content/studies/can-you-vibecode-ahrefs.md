@@ -357,7 +357,7 @@ Its last suggestion was to fold "is [app] free" into those same pages, a family 
 
 The whole run cost $0.77 of the $50 of credits that come with the $99 a month.
 
-[ROB: would you pay $99 a month for it? one sentence]
+Yes, because you're paying for the data. The $99 is Ahrefs' index with an agent sitting on it, and $50 of that comes straight back as credits.
 
 So what do you do with all this if you're building?
 
