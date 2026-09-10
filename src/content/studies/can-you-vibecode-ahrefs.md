@@ -253,11 +253,13 @@ The chart at the top of this page draws all 13 live, with Ahrefs' two tags picke
 | collaboration | 181 | 18% | partly |
 | execution polish | 612 | 17% | yes, like everyone |
 
+[pull: Apps carrying both of Ahrefs' tags together hold at 74%, 35 of 47. | THE NUMBER]
+
 Proprietary data on its own is mid-table, holding a not-really verdict 56% of the time.
 
 Thirteen apps with that tag got a straight yes, because their "data" turned out to be a template library or a list you could scrape in an afternoon. The tag only bites when the data is too big to rebuild, and that is a scale question.
 
-**Apps carrying both of Ahrefs' tags together hold at 74%, 35 of 47.**
+Apps carrying both of Ahrefs' tags together hold at 74%, 35 of 47.
 
 The pair is the moat: a crawler that has been running for years, and the storage to keep what it found.
 
@@ -287,6 +289,8 @@ Three ways to get what Ahrefs does, priced per month for one person.
 
 ² letaido.com/#pricing and docs.letaido.com/docs/pricing, seen 7 Sep 2026. Their docs: the agent's read access mirrors your Ahrefs plan's limits; a free Ahrefs account works but pulls only what a free plan can.
 
+[pull: The $129 rents a crawl that started before you needed it. | THE PRICE]
+
 **The dashboard is the cheap part.**
 
 For your own site, $0 a month buys you a working rank tracker and audit, so if that is you, build it: Search Console costs nothing and the clone took one weekend of prompting.
@@ -311,6 +315,8 @@ The mockup for this study had a card that read "the moat, weaponized". I cut it 
 
 It is an agent, built by Ahrefs, that reads every Ahrefs report directly, "including data you cannot reach via the Ahrefs API or MCP" in their words, and builds the report or tool you asked for.
 
+![Diagram of an agent sitting on top of a thick stack of data layers labelled 15 years of crawl data, with a browser window and a clock beside it and the labels the agent and runs every day.](/studies/ahrefs/fig18.webp "An agent working on top of the index, on a schedule.")
+
 The price is $99 a month, $50 of model credits included, and it reads exactly what your Ahrefs plan lets it read.
 
 Put that next to chapter 1, where the clone spent its 54 minutes building screens.
@@ -332,6 +338,8 @@ So what do you do with all this if you are building?
 ## 7. What this means if you're building
 
 Three things follow.
+
+![Two-branch decision tree whose root asks whether the value is in the software or in the data, with the software branch reading vibecode it and the data branch reading buy it or build on it.](/studies/ahrefs/fig19.webp "One question decides what to build.")
 
 **1. Rent the data and build the layer on top.** If the value you want is in the software, a weekend gets you the software; the clone's rank tracker plumbing took twenty minutes. What nobody builds in a weekend is a fact about the world that took years to collect. Find out early which of those your idea depends on, and price them. Ahrefs sells its fact for $129 a month, which is cheap next to a crawler.
 
