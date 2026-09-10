@@ -1,6 +1,6 @@
 ---
 title: "Can you vibecode Ahrefs?"
-standfirst: "I gave an AI coding agent one prompt and six hours: rebuild the three things I pay Ahrefs for, from public data only. All three ran after 16 minutes. Here is what each one had inside."
+standfirst: "I gave an AI coding agent one prompt and six hours: rebuild the three things I pay Ahrefs for, from public data only. All three ran after 16 minutes. Here's what each one had inside."
 verdict: "no"
 verdict_text: ""
 opener: ""
@@ -28,7 +28,7 @@ cards:
   items:
     - label: "The clone's ceiling"
       title: "The screens were up after 16 minutes, and the data behind them was still missing when the agent stopped at minute 54."
-      body: "The clone found 5 referring domains for this site where Ahrefs shows 346, could not produce a search volume for any keyword, and ranked 0 of 10 keywords because no search engine would answer a server."
+      body: "The clone found 5 referring domains for this site where Ahrefs shows 346, couldn't produce a search volume for any keyword, and ranked 0 of 10 keywords because no search engine would answer a server."
     - label: "Agent A, the moat at work"
       title: "Ahrefs put its agent on the one input a clone cannot generate."
       body: "Letaido reads the Ahrefs index directly and writes the report for you, for $99 a month. Once an agent builds the dashboard on demand, the only thing left with a price is what the agent reads."
@@ -70,11 +70,11 @@ charts:
           - value: 99
             label: "+ an Ahrefs plan"
             above: true
-footer_line: "Commissioned by Ahrefs and written by me: they paid for the question and had no say in the answer. If it had come back yes, clone it, that is what you would be reading, and that is the only reason this study is worth anything."
+footer_line: "Commissioned by Ahrefs and written by me: they paid for the question and had no say in the answer. If it had come back yes, clone it, that's what you would be reading, and that's the only reason this study is worth anything."
 contents:
   - "What one prompt and six hours actually built of Ahrefs, and where each tool stopped"
   - "The index is the product, and time is the part no prompt can make"
-  - "The honest part: what is one prompt away, and what that means for the tiers"
+  - "The honest part: what's one prompt away, and what that means for the tiers"
   - "Ahrefs against every tag in the site's taxonomy, with the dataset's number for each"
   - "Build it, buy it, or let the vendor's agent do it, priced per month"
   - "What happens when the vendor puts an agent on its own data"
@@ -117,9 +117,9 @@ Here are the three keywords side by side in Ahrefs:
 
 Bing answered, and its answer to "can i vibecode it" was six dictionary entries for the word "can".
 
-I suppose that is technically a result.
+I suppose that's technically a result.
 
-The tracker shows 0 of 10 keywords ranking, because the search results, the only input that mattered, were the input it could not get.
+The tracker shows 0 of 10 keywords ranking, because the search results, the only input that mattered, were the input it couldn't get.
 
 This is what the walls looked like:
 
@@ -141,7 +141,7 @@ Domains: 209.5 million.
 
 Fifteen years of crawling sit behind those numbers. The backlink index refreshes every 15 to 30 minutes, which takes a crawler doing 5 million pages a minute and hardware they say would cost $900 million over three years to rent.
 
-Here is the page:
+Here's the page:
 
 ![The numbers block on Ahrefs' big data page: 35 trillion external backlinks in history, 493.9 billion pages in the index, 28.7 billion keywords, 16 years of historical data.](/studies/ahrefs/fig7.webp "ahrefs.com/big-data, as published on 7 September 2026.")
 
@@ -163,7 +163,7 @@ The free graph finds 116,776 referring domains. Ahrefs' own live count for its o
 
 **For a domain that size, the free graph gets the headline count right.**
 
-What it cannot give you: the 26.6 million backlinks behind that count, the pages and dates, a domain rating, and a number that moves every fifteen minutes.
+What it can't give you: the 26.6 million backlinks behind that count, the pages and dates, a domain rating, and a number that moves every fifteen minutes.
 
 Both screens, side by side:
 
@@ -185,7 +185,7 @@ The free graph gets the giant right and misses almost everything about the small
 
 Keywords have the same shape: 28.7 billion of them across 217 locations, each with a volume history.
 
-The free path gets you Google Trends, a 0 to 100 relative index and no volume at all, and there is no public copy of a volume database.
+The free path gets you Google Trends, a 0 to 100 relative index and no volume at all, and there's no public copy of a volume database.
 
 The newest wall is eighteen months old. Brand Radar runs more than 459 million prompts a month through six AI answer engines and keeps every response, with history that its own page says goes back to 2025.
 
@@ -203,19 +203,19 @@ So is there anything left that a weekend actually buys you?
 
 ## 3. Where the moat isn't
 
-Plenty, and this is the part Ahrefs did not pay for and gets anyway, because a study that only finds moats is an advert.
+Plenty, and this is the part Ahrefs didn't pay for and gets anyway, because a study that only finds moats is an advert.
 
 **The interface.** The agent rebuilt three of Ahrefs' screens in under an hour, and once it had their product pages to copy from, they looked like Ahrefs. Nobody pays $129 a month for the layout of a table.
 
 **The plumbing.** Rank tracking is a keyword list and a scheduled job, twenty minutes of work.
 
-Add a SERP API key, the kind the site's own Ahrefs prompt recommends, and it fills with real Google positions for your own domain. The clone's job is set to run daily; we did not wait a day to watch it.
+Add a SERP API key, the kind the site's own Ahrefs prompt recommends, and it fills with real Google positions for your own domain. The clone's job is set to run daily; we didn't wait a day to watch it.
 
 Ahrefs' Rank Tracker updates weekly on all four plans, Enterprise included. For one site you own, the weekend version can check more often than Ahrefs does.
 
-The agent could not sign up for that key from a server, which anyone with a browser can.
+The agent couldn't sign up for that key from a server, which anyone with a browser can.
 
-**Site audits.** Crawl your own domain and write what is broken to a file. Ahrefs knows this, which is why it gives that away in Ahrefs Free.
+**Site audits.** Crawl your own domain and write what's broken to a file. Ahrefs knows this, which is why it gives that away in Ahrefs Free.
 
 **Keyword ideas.** The agent pulled 328 real phrases for "vibe coding" in a minute, at no cost. That was the one tool it said it would keep.
 
@@ -223,7 +223,7 @@ Ahrefs lists 11,162 for the same seed, with a volume against each one. Ahrefs ch
 
 Ahrefs is a thin layer of software over a dataset that took fifteen years to collect, and the tiers price the dataset.
 
-If you only ever look at your own site, the free tier plus a weekend covers you, and Ahrefs' own pricing page more or less says so; type in a domain you do not own and you are back at chapter 2.
+If you only ever look at your own site, the free tier plus a weekend covers you, and Ahrefs' own pricing page more or less says so; type in a domain you don't own and you're back at chapter 2.
 
 ![Diagram of a thin dashboard panel resting on a thick stack of data layers labelled 15 years of crawl data, with a bracket marking the panel as one weekend.](/studies/ahrefs/fig15.webp "A thin layer of software on top of fifteen years of data.")
 
@@ -235,7 +235,7 @@ Every app on this site carries one to three moat tags, strongest first. A tag an
 
 Ahrefs carries two: proprietary data, then infrastructure scale.
 
-The chart at the top of this page draws all 13 live, with Ahrefs' two tags picked out. Here is the table behind it, 1,093 apps as of this week. "Held" means the app kept a not-really verdict.
+The chart at the top of this page draws all 13 live, with Ahrefs' two tags picked out. Here's the table behind it, 1,093 apps as of this week. "Held" means the app kept a not-really verdict.
 
 | moat tag | apps tagged | held (not really) | ahrefs has it |
 |---|---:|---:|---|
@@ -257,13 +257,13 @@ The chart at the top of this page draws all 13 live, with Ahrefs' two tags picke
 
 Proprietary data on its own is mid-table, holding a not-really verdict 56% of the time.
 
-Thirteen apps with that tag got a straight yes, because their "data" turned out to be a template library or a list you could scrape in an afternoon. The tag only bites when the data is too big to rebuild, and that is a scale question.
+Thirteen apps with that tag got a straight yes, because their "data" turned out to be a template library or a list you could scrape in an afternoon. The tag only bites when the data is too big to rebuild, and that's a scale question.
 
 Apps carrying both of Ahrefs' tags together hold at 74%, 35 of 47.
 
 The pair is the moat: a crawler that has been running for years, and the storage to keep what it found.
 
-Then look at what Ahrefs does not have: network effects (your account is not better because mine exists), a marketplace, or a regulator standing behind it.
+Then look at what Ahrefs doesn't have: network effects (your account isn't better because mine exists), a marketplace, or a regulator standing behind it.
 
 Switching costs are modest because the reports export, and integrations and collaboration are there but nobody pays for them.
 
@@ -282,8 +282,8 @@ Three ways to get what Ahrefs does, priced per month for one person.
 | upfront | one weekend of prompting | 0 | 0 |
 | per month | $0. no keys, no paid sources; a 12.7 GB download whenever you want a fresher edition (a new one lands about monthly) | $29 Starter, $129 Lite, $249 Standard, $449 Advanced¹ | $99 flat, with $50 of AI credits included; an Ahrefs plan on top if you want it reading your full data² |
 | what you get | a rank tracker and a site audit for your own domain, with a dashboard on top | the index: backlinks, volumes, difficulty, history, for any domain | the index plus the analysis written for you |
-| what you do not get | anyone else's data. volume and difficulty numbers you can defend | your time back | the dashboard. it builds one for you, but you are not the one holding it |
-| time to first answer | 16 minutes to a running tool. for volume or rankings, never | minutes | see chapter 6 |
+| what you don't get | anyone else's data. volume and difficulty numbers you can defend | your time back | the dashboard. it builds one for you, but you're not the one holding it |
+| time to first answer | 16 minutes to a running tool. for volume or rankings, never | minutes | 2 minutes, $0.77 of the included credits |
 
 ¹ ahrefs.com/pricing in USD, monthly billing, seen 7 Sep 2026. Annual billing is $1,290, $2,490 and $4,490 a year, which Ahrefs shows as $108, $208 and $374 a month. Enterprise is $1,499 a month on an annual contract. Ahrefs Free exists for sites you own.
 
@@ -293,19 +293,19 @@ Three ways to get what Ahrefs does, priced per month for one person.
 
 **The dashboard is the cheap part.**
 
-For your own site, $0 a month buys you a working rank tracker and audit, so if that is you, build it: Search Console costs nothing and the clone took one weekend of prompting.
+For your own site, $0 a month buys you a working rank tracker and audit, so if that's you, build it: Search Console costs nothing and the clone took one weekend of prompting.
 
-Type in a domain you do not own and the price of the free path goes to infinity.
+Type in a domain you don't own and the price of the free path goes to infinity.
 
-There is no public source for who links to a competitor, and no free monthly volume you can trust; difficulty falls with them.
+There's no public source for who links to a competitor, and no free monthly volume you can trust; difficulty falls with them.
 
-The clone did not find a cheaper way to get that data, because there is none.
+The clone didn't find a cheaper way to get that data, because there's none.
 
 The $129 rents a crawl that started before you needed it.
 
 For $99 a month you get an agent that reads the index directly and builds the report, and the docs are blunt that it reads exactly what your Ahrefs plan lets it read.
 
-That is a way to stop building the dashboard at all.
+That's a way to stop building the dashboard at all.
 
 Which brings me to the card I cut from the mockup.
 
@@ -313,7 +313,7 @@ Which brings me to the card I cut from the mockup.
 
 The mockup for this study had a card that read "the moat, weaponized". I cut it because it sounded like a pitch deck, and then I read what Letaido actually is.
 
-It is an agent, built by Ahrefs, that reads every Ahrefs report directly, "including data you cannot reach via the Ahrefs API or MCP" in their words, and builds the report or tool you asked for.
+It's an agent, built by Ahrefs, that reads every Ahrefs report directly, "including data you cannot reach via the Ahrefs API or MCP" in their words, and builds the report or tool you asked for.
 
 ![Diagram of an agent sitting on top of a thick stack of data layers labelled 15 years of crawl data, with a browser window and a clock beside it and the labels the agent and runs every day.](/studies/ahrefs/fig18.webp "An agent working on top of the index, on a schedule.")
 
@@ -331,9 +331,35 @@ An agent between you and the interface makes the interface stop being a reason t
 
 If Ahrefs' data ever stops being the best, Letaido makes leaving easier, so the moat is the index and Letaido is a bet that the index is enough.
 
-<!-- r6: the chapter's verdict paragraph is written from Rob's one real Letaido run on canivibecodeit.com (how long it took, what it answered, whether he would pay $99 a month for that answer) and fig12 is its screenshot. Not written in advance. -->
+Then I pointed it at this site.
 
-So what do you do with all this if you are building?
+The prompt was: audit canivibecodeit.com and tell me the five keywords I should target next, with volume.
+
+It answered in two minutes.
+
+![Letaido answering the audit prompt for canivibecodeit.com](/studies/ahrefs/fig12.webp "The agent, two minutes and 77 cents in: five keywords with volume, difficulty and a reason.")
+
+It opened by telling me it already had a month of Ahrefs research on this domain on file, so it audited against that and spent nothing on fresh calls.
+
+Five keywords came back, all the same shape: heygen pricing, clickup pricing, descript pricing, synthesia pricing and jotform pricing.
+
+Together they carry about 26,000 US searches a month at an average difficulty of 7, and not one of them has a page on this site yet.
+
+Then it explained why it had gone to pricing pages at all.
+
+Across the 990 apps it had numbers for, "[app] pricing" carries 633,590 US searches a month.
+
+"[app] alternatives", the phrase this whole site is built around, carries 141,810.
+
+Pricing also wins head to head on 719 of those 990 apps, which I didn't know and wouldn't have thought to check.
+
+Its last suggestion was to fold "is [app] free" into those same pages, a family worth 210,170 US searches a month that nothing here targets today.
+
+The whole run cost $0.77 of the $50 of credits that come with the $99 a month.
+
+[ROB: would you pay $99 a month for it? one sentence]
+
+So what do you do with all this if you're building?
 
 ## 7. What this means if you're building
 
@@ -345,7 +371,7 @@ Three things follow.
 
 **2. Check the moat before the feature list.** Of 1,093 apps on this site, 612 lean on execution polish, and polish holds a not-really verdict 17% of the time. Proprietary data with infrastructure scale behind it holds 74%, so the polish is what to clone and the data is what to build a business on.
 
-**3. Assume the incumbent gets the same agents you do.** The tools that let you rebuild a dashboard in an afternoon are the tools Ahrefs is pointing at its own index. A product defended only by "nobody has built the interface yet" is undefended, while fifteen years of crawling is a fifteen-year head start that agents do not shorten.
+**3. Assume the incumbent gets the same agents you do.** The tools that let you rebuild a dashboard in an afternoon are the tools Ahrefs is pointing at its own index. A product defended only by "nobody has built the interface yet" is undefended, while fifteen years of crawling is a fifteen-year head start that agents don't shorten.
 
 ## How this was scored
 
@@ -355,6 +381,6 @@ The clone was one AI coding agent session, one prompt, a six-hour limit, public 
 
 Every Ahrefs number in this study comes from a screenshot taken on my own paid account or from a page Ahrefs publishes, read on 7 September 2026. The index figures are as published on ahrefs.com/big-data on that day; the page itself carries no date on those numbers. Ahrefs prints three versions of the Brand Radar prompt figure on 9 September 2026: 459M+ on the Brand Radar page, 460M on the numbers page and 475M+ on the pricing page. We use the product page's.
 
-"Fifteen years of crawling" is Ahrefs' own phrase on ahrefs.com/about; its numbers page says 16 years of historical data. "Agent A" is the name Ahrefs used when we agreed this study and the address of their sign-up page, letaido.com/agent-a; the page itself does not use the name, and the product pages call the same thing Letaido's marketing agent.
+"Fifteen years of crawling" is Ahrefs' own phrase on ahrefs.com/about; its numbers page says 16 years of historical data. "Agent A" is the name Ahrefs used when we agreed this study and the address of their sign-up page, letaido.com/agent-a; the page itself doesn't use the name, and the product pages call the same thing Letaido's marketing agent.
 
-Ahrefs read the draft for factual errors before publication. They did not see the verdict before we wrote it and they had no say in it.
+Ahrefs read the draft for factual errors before publication. They didn't see the verdict before we wrote it and they had no say in it.
