@@ -152,7 +152,7 @@ const jsonld = [
       {/* the disclosure lives here: study number, "commissioned by", and the
           sponsor's mark inline where the name would be, linked rel=sponsored */}
       <p class="st-eyebrow">
-        moat study no. {study.number} · commissioned by{' '}
+        <span>moat study no. {study.number} · commissioned by</span>
         {study.sponsor.logo ? (
           <a class="st-eyebrow-mark" href={study.sponsor.url} target="_blank" rel="sponsored noopener" aria-label={study.sponsor.name}>
             <img class="mark-dark" src={study.sponsor.logo} alt="" loading="eager" decoding="async" />
@@ -368,19 +368,25 @@ const jsonld = [
     text-align: left;
   }
 
-  /* the sponsor's mark inline in the eyebrow: sized to the line's cap
-     height, sitting on the baseline; one file per theme */
+  /* the sponsor's logo inline in the eyebrow, a proper mark rather than a
+     cap-height glyph: about 24px tall on a desktop line and 20px on a
+     phone, centred on the text line, 0.4em after "by"; one file per theme.
+     It stays in the text flow so on a phone, where the eyebrow wraps, it
+     follows "by" onto its line; the negative block margin keeps the taller
+     mark from stretching the 16px line. */
   .st-eyebrow-mark {
-    display: inline-block;
-    vertical-align: baseline;
+    --mark-h: clamp(20px, 1.25vw + 6px, 24px);
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    margin: calc((16px - var(--mark-h)) / 2) 0 calc((16px - var(--mark-h)) / 2) 0.4em;
     line-height: 0;
   }
 
   .st-eyebrow-mark img {
-    display: inline-block;
-    height: 0.75em; /* JetBrains Mono cap height */
+    display: block;
+    height: var(--mark-h);
     width: auto;
-    vertical-align: baseline;
   }
 
   .st-eyebrow-mark .mark-light,
