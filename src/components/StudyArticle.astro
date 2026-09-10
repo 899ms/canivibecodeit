@@ -372,14 +372,15 @@ const jsonld = [
      cap-height glyph: about 24px tall on a desktop line and 20px on a
      phone, centred on the text line, 0.4em after "by"; one file per theme.
      It stays in the text flow so on a phone, where the eyebrow wraps, it
-     follows "by" onto its line; the negative block margin keeps the taller
-     mark from stretching the 16px line. */
+     follows "by" onto its line. Its bottom edge sits on the text baseline
+     (an image's baseline is its bottom edge); the negative top margin keeps
+     the taller mark from stretching the 16px line. */
   .st-eyebrow-mark {
     --mark-h: clamp(20px, 1.25vw + 6px, 24px);
     display: inline-flex;
-    align-items: center;
-    vertical-align: middle;
-    margin: calc((16px - var(--mark-h)) / 2) 0 calc((16px - var(--mark-h)) / 2) 0.4em;
+    align-items: flex-end;
+    vertical-align: baseline;
+    margin: calc(16px - var(--mark-h)) 0 0 0.4em;
     line-height: 0;
   }
 
