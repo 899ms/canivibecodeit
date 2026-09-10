@@ -1,0 +1,22 @@
+---
+/* /studies/p/<token>/<slug>: the same study page as /studies/<slug>, served
+   to whoever holds the preview token while the section is still dark, so a
+   commissioned study can be signed off on the real domain before launch.
+   Gated by STUDY_PREVIEW_TOKEN alone (lib/study-preview.js), never by
+   STUDIES_LIVE; a bad token is a 404, like any other unknown URL. */
+import { getEntry } from 'astro:content';
+import StudyArticle from '../../../../components/StudyArticle.astro';
+import { studyBySlug } from '../../../../lib/studies.js';
+import { previewBase, previewTokenValid, setPreviewHeaders } from '../../../../lib/study-preview.js';
+
+const { token, slug } = Astro.params;
+if (!previewTokenValid(token)) return new Response(null, { status: 404 });
+
+const study = studyBySlug(slug);
+const entry = study ? await getEntry('studies', study.slug) : null;
+if (!study || !entry) return new Response(null, { status: 404 });
+
+setPreviewHeaders(Astro.response.headers);
+---
+
+<StudyArticle {study} {entry} base={previewBase(token, study.slug)} preview />

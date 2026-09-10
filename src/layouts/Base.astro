@@ -49,6 +49,7 @@ const isPrivate =
   Astro.url.pathname.startsWith('/thebuildgames/entry') ||
   Astro.url.pathname.startsWith('/sponsor/stats') ||
   Astro.url.pathname.startsWith('/account') ||
+  Astro.url.pathname.startsWith('/studies/p/') ||
   Astro.url.search.includes('token=');
 // noindex without going full private (keeps analytics): /signin wants this.
 const { noindex = false } = Astro.props;

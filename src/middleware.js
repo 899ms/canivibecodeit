@@ -10,9 +10,10 @@ import { clientIp, originVerdict } from './lib/request.js';
    middleware and clientIp share exactly one verdict. See the doc-comment
    there for the three-state ladder. */
 
-// Session-varying surfaces: never cacheable, anywhere. Everything else on the
-// site stays cache-friendly for the ~99% anonymous traffic.
-const PRIVATE_PATH = /^\/(api\/auth\/|api\/stack|api\/account|account\/?$|signin\/?$)/;
+// Session-varying surfaces, plus the token-carrying study previews: never
+// cacheable, anywhere. Everything else on the site stays cache-friendly for
+// the ~99% anonymous traffic.
+const PRIVATE_PATH = /^\/(api\/auth\/|api\/stack|api\/account|account\/?$|signin\/?$|studies\/p\/)/;
 
 export async function onRequest(context, next) {
   context.locals.user = null;
