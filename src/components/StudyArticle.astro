@@ -370,17 +370,18 @@ const jsonld = [
 
   /* the sponsor's logo inline in the eyebrow, a proper mark rather than a
      cap-height glyph: about 24px tall on a desktop line and 20px on a
-     phone, centred on the text line, 0.4em after "by"; one file per theme.
+     phone, centred on the text line; one file per theme.
      It stays in the text flow so on a phone, where the eyebrow wraps, it
      follows "by" onto its line. Its bottom edge sits on the text baseline
-     (an image's baseline is its bottom edge); the negative top margin keeps
+     (an image's baseline is its bottom edge), 0.9em after "by" so the space
+     reads like the one around the middle dot; the negative top margin keeps
      the taller mark from stretching the 16px line. */
   .st-eyebrow-mark {
     --mark-h: clamp(20px, 1.25vw + 6px, 24px);
     display: inline-flex;
     align-items: flex-end;
     vertical-align: baseline;
-    margin: calc(16px - var(--mark-h)) 0 0 0.4em;
+    margin: calc(16px - var(--mark-h)) 0 0 0.9em;
     line-height: 0;
   }
 
