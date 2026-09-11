@@ -10,3 +10,5 @@ export const buildsLive = () => on('BUILDS_LIVE');
 export const challengeLive = () => on('CHALLENGE_LIVE');
 
 export const buildGamesLive = () => on('BUILDGAMES_LIVE');
+
+export const studiesLive = () => on('STUDIES_LIVE');

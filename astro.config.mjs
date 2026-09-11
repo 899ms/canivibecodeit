@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import node from '@astrojs/node';
+import rehypeStudy from './src/lib/rehype-study.mjs';
 
 // Server-rendered on purpose: vote counts and the MRR ticker are live data
 // baked into the HTML of every page (SEO requirement: no client-only content).
@@ -16,6 +17,9 @@ export default defineConfig({
   // browser Origin against the internal listener origin). The POST endpoints
   // carry their own abuse controls: IP rate limits, honeypot, dedupe.
   security: { checkOrigin: false },
+  // Markdown is only used by the studies collection: figures, table
+  // wrappers and sponsored-link rel live in src/lib/rehype-study.mjs.
+  markdown: { rehypePlugins: [rehypeStudy] },
   // Build id baked in at build time: unhashed public/ scripts get ?v=<id> so
   // long-lived edge/browser caches can never serve stale JS after a deploy.
   // assetsInlineLimit: Vite otherwise inlines sub-4KB scripts into the HTML,

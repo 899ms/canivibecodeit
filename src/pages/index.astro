@@ -6,7 +6,8 @@ import VisitorGlobe from '../components/VisitorGlobe.astro';
 import DigestCard from '../components/DigestCard.astro';
 import { allApps, appsWithAlternativesPage, topCategories, categoriesInUse } from '../lib/apps.js';
 import { bgPotCents, liveBuilds, modelDemos, voteCounts } from '../lib/db.js';
-import { buildGamesLive, buildsLive } from '../lib/flags.js';
+import { buildGamesLive, buildsLive, studiesLive } from '../lib/flags.js';
+import { featuredStudy, studiesCalloutActive } from '../lib/studies.js';
 import { usd } from '../lib/buildgames.js';
 import { SHOWCASE_MODELS, modelSlug } from '../lib/models.js';
 
@@ -20,6 +21,8 @@ if (buildGamesLive()) {
     gamesPotCents = 0;
   }
 }
+
+const study = featuredStudy();
 
 // The model-showcase strip under the games strip: real counts, shown at
 // every width. The first registry entry is the featured showcase.
@@ -148,6 +151,18 @@ const jsonld = [
       <a class="chip" href="/moats">🏰 moats</a>
       <a class="chip" href="/categories">all categories →</a>
     </nav>
+    {/* Launch-week study callout (publish spec 5): STUDIES_LIVE plus the
+        STUDIES_CALLOUT_UNTIL date in lib/studies.js; after the date it
+        disappears without a deploy. Then the study lives in /studies. */}
+    {
+      studiesLive() && studiesCalloutActive() && study && (
+        <a class="study-callout" href={`/studies/${study.slug}`}>
+          <i class="sc-dot" aria-hidden="true"></i>
+          <span class="sc-text">moat study no. {study.number}: {study.title}</span>
+          <span class="sc-cta">read the breakdown →</span>
+        </a>
+      )
+    }
     {
       buildGamesLive() ? (
         <a class="hatch-strip games-strip" href="/thebuildgames">

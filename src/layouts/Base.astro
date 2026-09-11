@@ -8,7 +8,7 @@ import Radio from '../components/Radio.astro';
 import SignupModal from '../components/SignupModal.astro';
 import SponsorRails from '../components/SponsorRails.astro';
 import SponsorTape from '../components/SponsorTape.astro';
-import { buildGamesLive, buildsLive } from '../lib/flags.js';
+import { buildGamesLive, buildsLive, studiesLive } from '../lib/flags.js';
 import { getBoard, nextRunMonthName } from '../lib/sponsors.js';
 import { scriptJson } from '../lib/request.js';
 import { REC_HIDE_SCRIPT, THEME_SCRIPT } from '../lib/csp.js';
@@ -49,6 +49,7 @@ const isPrivate =
   Astro.url.pathname.startsWith('/thebuildgames/entry') ||
   Astro.url.pathname.startsWith('/sponsor/stats') ||
   Astro.url.pathname.startsWith('/account') ||
+  Astro.url.pathname.startsWith('/studies/p/') ||
   Astro.url.search.includes('token=');
 // noindex without going full private (keeps analytics): /signin wants this.
 const { noindex = false } = Astro.props;
@@ -76,6 +77,8 @@ const blocks = [orgLd, ...jsonld];
 // nav for the games launch (operator brief, Aug 31) — accent-highlighted.
 const SECTIONS = [
   { href: '/#death-list', label: 'the death list', top: true },
+  // Studies: commissioned long reads. Same flag pattern as the games tab.
+  { href: '/studies', label: 'studies', top: true, show: studiesLive() },
   { href: '/thebuildgames', label: 'the build games', top: true, cls: 'nav-games', show: buildGamesLive() },
   { href: '/alternatives', label: 'alternatives', top: true },
   { href: '/builds', label: 'builds', top: false, show: buildsLive() },

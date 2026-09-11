@@ -1,0 +1,17 @@
+---
+/* /studies/<slug>: the public rendering of one study. The page itself is
+   StudyArticle; this route is the flag gate and the lookup. Gated by
+   STUDIES_LIVE; unknown slugs 404. */
+import { getEntry } from 'astro:content';
+import StudyArticle from '../../components/StudyArticle.astro';
+import { studiesLive } from '../../lib/flags.js';
+import { studyBySlug } from '../../lib/studies.js';
+
+if (!studiesLive()) return new Response(null, { status: 404 });
+
+const study = studyBySlug(Astro.params.slug);
+const entry = study ? await getEntry('studies', study.slug) : null;
+if (!study || !entry) return new Response(null, { status: 404 });
+---
+
+<StudyArticle {study} {entry} />
