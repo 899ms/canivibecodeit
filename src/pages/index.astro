@@ -24,6 +24,7 @@ if (buildGamesLive()) {
 }
 
 const study = featuredStudy();
+const studyCallout = !!(studiesLive() && studiesCalloutActive() && study);
 
 // The model-showcase strip under the games strip: real counts, shown at
 // every width. The first registry entry is the featured showcase.
@@ -156,18 +157,6 @@ const jsonld = [
       <a class="chip chip-abc" href="/moats/abc"><b class="abc-az">A→Z</b> the ABCs of moats <span class="abc-n">{abc.filled}/{abc.total}</span></a>
       <a class="chip" href="/categories">all categories →</a>
     </nav>
-    {/* Launch-week study callout (publish spec 5): STUDIES_LIVE plus the
-        STUDIES_CALLOUT_UNTIL date in lib/studies.js; after the date it
-        disappears without a deploy. Then the study lives in /studies. */}
-    {
-      studiesLive() && studiesCalloutActive() && study && (
-        <a class="study-callout" href={`/studies/${study.slug}`}>
-          <i class="sc-dot" aria-hidden="true"></i>
-          <span class="sc-text">moat study no. {study.number}: {study.title}</span>
-          <span class="sc-cta">read the breakdown →</span>
-        </a>
-      )
-    }
     {
       buildGamesLive() ? (
         <a class="hatch-strip games-strip" href="/thebuildgames">
@@ -194,11 +183,25 @@ const jsonld = [
         </a>
       )
     }
+    {/* Launch-week study callout (publish spec 5): STUDIES_LIVE plus the
+        STUDIES_CALLOUT_UNTIL date in lib/studies.js. It takes the showcase
+        strip's slot under the games strip; after the date it disappears
+        without a deploy and the showcase strip comes back. */}
+    {
+      studyCallout && (
+        <a class="study-callout" href={`/studies/${study.slug}`}>
+          <i class="sc-dot" aria-hidden="true"></i>
+          <span class="sc-text">moat study no. {study.number}: {study.title}</span>
+          <span class="sc-cta">read the breakdown →</span>
+        </a>
+      )
+    }
     {/* A structural twin of the games strip above: same classes, same box,
         one centred line with the link inline at the end. The builds count
-        only appears once there is one. */}
+        only appears once there is one. Hidden while the study callout has
+        the slot. */}
     {
-      showcase && buildsLive() && (
+      !studyCallout && showcase && buildsLive() && (
         <a class="hatch-strip games-strip" href={`/built-with/${showcase.slug}`}>
           <span class="hs-copy">
             <span class="new-tag">NEW</span> built with {showcase.name} · {showcaseDemos}{' '}

@@ -38,7 +38,7 @@ export const STUDIES = [
     cloneAttempts: 1,
     // ISO date, set on publish day (drives the index card, JSON-LD and the
     // dateline). null = not published yet: the card says so instead of a date.
-    publishedAt: null,
+    publishedAt: '2026-09-16',
     ogImage: '/og/studies/can-you-vibecode-ahrefs.png',
     // Figures live here (public/studies/<assetDir>/…)
     assetDir: 'ahrefs',
@@ -48,7 +48,7 @@ export const STUDIES = [
 /* Launch-week homepage callout: shown while STUDIES_LIVE is on AND today is
    on or before this ISO date. Set on launch day to launch + 7; after that it
    disappears without a deploy. */
-export const STUDIES_CALLOUT_UNTIL = '2026-09-30';
+export const STUDIES_CALLOUT_UNTIL = '2026-09-23';
 
 export function studiesCalloutActive(now = Date.now()) {
   return now <= Date.parse(`${STUDIES_CALLOUT_UNTIL}T23:59:59Z`);
